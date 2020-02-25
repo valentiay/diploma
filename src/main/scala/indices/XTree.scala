@@ -1,9 +1,9 @@
 package indices
 
-import domain.Point
+import domain.{Point, Rule}
 import indices.XTreeBuilder.XTreeConfig
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 class XTreeBuilder(config: XTreeConfig) {
   var root: Option[XTreeVertex] = None
@@ -11,25 +11,17 @@ class XTreeBuilder(config: XTreeConfig) {
   def insert(point: Point): Unit =
     root match {
       case Some(value) =>
-        value match {
-          case leaf: XTreeLeaf =>
-            leaf.insert(point) match {
-              case Left(value) =>
-                root = Some(new XTreeNode(value, config, 1))
-              case Right(value) =>
-            }
-          case node: XTreeNode =>
-            node.insert(point) match {
-              case Left(value) =>
-                root = Some(new XTreeNode(value, config, 1))
-              case Right(value) =>
-            }
+        value.insert(point).foreach { case (a, b) =>
+          root = Some(new XTreeNode(ArrayBuffer(a, b), config, 1))
         }
       case None =>
         root = Some(XTreeLeaf.fromPoint(point, config))
     }
 
-  def printMe(): Unit = root.foreach(_.printMe)
+  def find(rule: Rule): List[Point] =
+    root.map(_.find(MBR.fromRule(rule)).toList).getOrElse(Nil)
+
+  def printMe(): Unit = root.foreach(_.printMe())
 }
 
 sealed trait XTreeVertex {
@@ -37,50 +29,53 @@ sealed trait XTreeVertex {
 
   def mbr: MBR
 
-  def insert(point: Point): Either[ArrayBuffer[XTreeVertex], XTreeVertex]
+  def insert(point: Point): Option[(XTreeVertex, XTreeVertex)]
 
   def printMe(): Unit
+
+  var isLeft: Option[Boolean] = None
+
+  def find(rule: MBR): ArrayBuffer[Point]
 }
 
-class XTreeLeaf(val elements: ArrayBuffer[Point], val config: XTreeConfig, var blocks: Int) extends XTreeVertex {
-
-  def chooseDimension: Int = {
+object XTreeVertex {
+  def chooseDimension[T](config: XTreeConfig, elements: ArrayBuffer[T], toMbr: T => MBR): Int = {
     var i = 0
     var mini = 0
     var mins = 1e200
-    while (i >= config.dimensions) {
-      val sorted = elements.sortBy(element => element(i))
+    while (i < config.dimensions) {
+      val sorted = elements.sortBy(element => toMbr(element).segments(i)._1)
       var k = config.minChildren
       var s = 1e200
       while (k < config.maxChildren - config.minChildren) {
-        val mbr1 = MBR(sorted.take(k))
-        val mbr2 = MBR(sorted.drop(k))
+        val mbr1 = MBR.fromMBRs(sorted.take(k).map(toMbr)).get
+        val mbr2 = MBR.fromMBRs(sorted.drop(k).map(toMbr)).get
         s = Math.min(s, mbr1.intersect(mbr2).map(_.volume).getOrElse(0d))
         k += 1
       }
+      //      println(s"S: $s")
       if (s < mins) {
         mins = s
         mini = i
       }
       i += 1
     }
-    println(s"Axis chosen: $mini")
+    //    println(s"Axis chosen: $mini, $mins")
     mini
   }
 
-  def split(): Either[ArrayBuffer[XTreeVertex], XTreeVertex] = {
-    val dimension = chooseDimension
-    val sorted = elements.sortBy(element => element(dimension))
+  def topologicalSplit[T](config: XTreeConfig, elements: ArrayBuffer[T], toMbr: T => MBR): Option[(ArrayBuffer[T], ArrayBuffer[T])] = {
+    val dimension = chooseDimension(config, elements, toMbr)
+    val sorted = elements.sortBy(element => toMbr(element).segments(dimension)._1)
     var i = config.minChildren
     var mini = 0
     var minOverlap = 1d
     while (i < config.maxChildren - config.minChildren) {
-      val mbr1 = MBR(sorted.take(i))
-      val mbr2 = MBR(sorted.drop(i))
-//      println(mbr1.segments)
-//      println(mbr2.segments)
-      val overlap =
-        mbr1.intersect(mbr2).map(_.volume).getOrElse(0d) / Math.min(mbr1.volume, mbr2.volume)
+      val mbr1 = MBR.fromMBRs(sorted.take(i).map(toMbr)).get
+      val mbr2 = MBR.fromMBRs(sorted.drop(i).map(toMbr)).get
+      //      println(mbr1.segments)
+      //      println(mbr2.segments)
+      val overlap = mbr1.intersect(mbr2).map(_.volume).getOrElse(0d) / Math.min(mbr1.volume, mbr2.volume)
       //      println(s"Overlap: $overlap")
       if (overlap < minOverlap) {
         minOverlap = overlap
@@ -92,38 +87,54 @@ class XTreeLeaf(val elements: ArrayBuffer[Point], val config: XTreeConfig, var b
     val right = sorted.drop(mini)
     //    println(s"Left: $left")
     //    println(s"Right: $right")
-    val leftMbr = MBR(left)
-    val rightMbr = MBR(right)
-    val overlap = leftMbr.intersect(rightMbr).map(_.volume).getOrElse(0d) / leftMbr.plusMBR(rightMbr).volume
-    println(s"Leaf overlap: $overlap")
-    if (overlap < config.maxOverlap) {
-      //      println("Leaf split successful")
-      Left(
-        ArrayBuffer.apply[XTreeVertex](
-          new XTreeLeaf(left, config, left.size / config.maxChildren + 1),
-          new XTreeLeaf(right, config, right.size / config.maxChildren + 1)
-        )
-      )
+    //    println(s"Overlap: $minOverlap")
+    if (minOverlap < config.maxOverlap) {
+      Some((left, right))
     } else {
-      println("Leaf split unsuccessful")
-      blocks = elements.size / config.maxChildren + 1
-      Right(this)
+      None
+    }
+  }
+}
+
+class XTreeLeaf(val elements: ArrayBuffer[Point], val config: XTreeConfig, var blocks: Int) extends XTreeVertex {
+
+  def split(): Option[(XTreeVertex, XTreeVertex)] = {
+    //    println("Leaf")
+    XTreeVertex.topologicalSplit(config, elements, point => MBR.single(point)) match {
+      case Some((left, right)) =>
+        Some(
+          (
+            new XTreeLeaf(left, config, left.size / config.maxChildren + 1),
+            new XTreeLeaf(right, config, right.size / config.maxChildren + 1)
+          )
+        )
+
+      case None =>
+        //        println("Leaf split unsuccessful")
+        blocks = elements.size / config.maxChildren + 1
+        None
     }
   }
 
   def mbr: MBR = MBR(elements)
 
-  def insert(point: Point): Either[ArrayBuffer[XTreeVertex], XTreeVertex] = {
+  def insert(point: Point): Option[(XTreeVertex, XTreeVertex)] = {
     elements.addOne(point) // Вставить и выполнить корректировку
-    if (elements.size > config.maxChildren) {
+    if (elements.size > config.maxChildren * blocks) {
       split()
     } else {
-      Right(this)
+      None
     }
   }
 
   def printMe(): Unit = {
-    println(s"Leaf: ${elements.size} elements, $blocks blocks")
+    println(s"Leaf: ${elements.size} elements, $blocks blocks, ${MBR.apply(elements).volume}")
+  }
+
+  def find(rule: MBR): ArrayBuffer[Point] = {
+    elements.flatMap(point =>
+      Some(point).filter(rule.contains)
+    )
   }
 }
 
@@ -132,70 +143,48 @@ object XTreeLeaf {
 }
 
 class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig, var blocks: Int) extends XTreeVertex {
-  val mbr: MBR = MBR.fromMBRs(children.map(_.mbr)).get
+  def mbr: MBR = MBR.fromMBRs(children.map(_.mbr)).get
 
-  def chooseDimension: Int = {
-    var i = 0
-    var mini = 0
-    var mins = 1e200
-    while (i >= config.dimensions) {
-      val sorted = children.sortBy(element => element.mbr.segments(i)._1) // !!!
-      var k = config.minChildren
-      var s = 1e200
-      while (k < config.maxChildren - config.minChildren) {
-        val mbr1 = MBR.fromMBRs(sorted.take(k).map(_.mbr)).get // !!!
-        val mbr2 = MBR.fromMBRs(sorted.drop(k).map(_.mbr)).get // !!!
-        s = Math.min(s, mbr1.intersect(mbr2).map(_.volume).getOrElse(0d))
-        k += 1
-      }
-      if (s < mins) {
-        mins = s
-        mini = i
-      }
-      i += 1
+  def minOverlapSplit: Option[(ArrayBuffer[XTreeVertex], ArrayBuffer[XTreeVertex])] = {
+    val grouped = children.groupBy(_.isLeft)
+    //    println(grouped)
+    val maybeLeft = grouped.get(Some(true))
+    val maybeRight = grouped.get(Some(false))
+    (maybeLeft, maybeRight) match {
+      case (Some(left), Some(right)) =>
+        if (
+          config.minChildren <= left.size && left.size <= config.maxChildren &&
+            config.minChildren <= right.size && right.size <= config.maxChildren
+        ) {
+          Some(left, right)
+        } else {
+          //          println("Min overlap split failed")
+          None
+        }
+      case _ =>
+        //        println("Min overlap completely failed")
+        None
     }
-    mini
   }
 
-  def split(): Either[ArrayBuffer[XTreeVertex], XTreeVertex] = {
-    val dimension = chooseDimension
-    val sorted = children.sortBy(element => element.mbr.segments(dimension)) // !!!
-    var i = config.minChildren
-    var mini = 0
-    var minOverlap = 1d
-    while (i < config.maxChildren - config.minChildren) {
-      val mbr1 = MBR.fromMBRs(sorted.take(i).map(_.mbr)).get // !!!
-      val mbr2 = MBR.fromMBRs(sorted.drop(i).map(_.mbr)).get // !!!
-      val overlap =
-        mbr1.intersect(mbr2).map(_.volume).getOrElse(0d) / Math.min(mbr1.volume, mbr2.volume)
-      if (overlap < minOverlap) {
-        minOverlap = overlap
-        mini = i
-      }
-      i += 1
-    }
-    val left = sorted.take(mini)
-    val right = sorted.drop(mini)
-    val leftMbr = MBR.fromMBRs(left.map(_.mbr)).get // !!!
-    val rightMbr = MBR.fromMBRs(right.map(_.mbr)).get // !!!
-    val overlap = leftMbr.intersect(rightMbr).map(_.volume).getOrElse(0d) / leftMbr.plusMBR(rightMbr).volume
-    println(s"Overlap: $overlap")
-    if (overlap < config.maxOverlap) {
-//      println("Node split successfull")
-      Left(
-        ArrayBuffer.apply[XTreeVertex](
-          new XTreeNode(left, config, left.size / config.maxChildren + 1),
-          new XTreeNode(right, config, right.size / config.maxChildren + 1)
+  def split(): Option[(XTreeVertex, XTreeVertex)] = {
+    //    println("Node")
+    XTreeVertex.topologicalSplit[XTreeVertex](config, children, _.mbr).orElse(minOverlapSplit) match {
+      case Some((left, right)) =>
+        Some(
+          (
+            new XTreeNode(left, config, left.size / config.maxChildren + 1),
+            new XTreeNode(right, config, right.size / config.maxChildren + 1)
+          )
         )
-      )
-    } else {
-      println("Node split unsuccessful")
-      blocks = children.size / config.maxChildren + 1
-      Right(this)
+      case None =>
+//        println("Node split unsuccessful")
+        blocks = children.size / config.maxChildren + 1
+        None
     }
   }
 
-  def insert(point: Point): Either[ArrayBuffer[XTreeVertex], XTreeVertex] = {
+  def insert(point: Point): Option[(XTreeVertex, XTreeVertex)] = {
     var minMbr = children(0).mbr.plusPoint(point).volume
     var mini = 0
     for (i <- children.indices.tail) {
@@ -205,17 +194,26 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
         mini = i
       }
     }
-    val splitResult = children(mini).insert(point)
-    splitResult match {
-      case Left(value) =>
+    children(mini).insert(point).foreach {
+      case (a, b) =>
+        //        println(children.map(_.isLeft))
+        if (children.size == 2) {
+          children(0).isLeft = Some(true)
+          children(1).isLeft = Some(false)
+        }
+        a.isLeft = children(mini).isLeft
+        b.isLeft = children(mini).isLeft
+        //        println(a.isLeft)
+        //        println(b.isLeft)
         children.remove(mini)
-        children.addAll(value)
-      case Right(value) =>
+        children.addOne(a)
+        children.addOne(b)
+
     }
-    if (children.size > config.maxChildren) {
+    if (children.size > config.maxChildren * blocks) {
       split()
     } else {
-      Right(this)
+      None
     }
   }
 
@@ -223,6 +221,15 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
     println(s"Node: ${children.size} children, $blocks blocks")
     children.foreach(_.printMe())
   }
+
+  def find(rule: MBR): ArrayBuffer[Point] =
+    children.flatMap(vertex =>
+      if (vertex.mbr.intersect(rule).nonEmpty) {
+        vertex.find(rule)
+      } else {
+        ArrayBuffer.empty
+      }
+    )
 }
 
 object XTreeBuilder {

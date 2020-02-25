@@ -13,8 +13,8 @@ object TestUniform extends App {
   for (size <- sizes) {
     val rules = Uniform.generateRules(dimensions, size)
     val points = Uniform.generatePoints(dimensions, size)
-    val index = new Quadratic(rules)
     val start = System.nanoTime()
+    val index = new Quadratic(rules)
     val result = for (point <- points) yield {
       index.findRules(point)
     }
