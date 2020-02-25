@@ -3,7 +3,7 @@ package testing.script
 import indices.Quadratic
 import testing.generation.Uniform
 
-object TestUniform extends App {
+object TestQuadratic extends App {
   val sizes = List(1, 10, 100, 1000, 5000, 10000, 20000)
   val pointsSize = 1000
   val dimensions = 8
