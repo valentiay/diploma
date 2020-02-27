@@ -5,11 +5,11 @@ import indices.XTreeBuilder.XTreeConfig
 import testing.generation.Uniform
 
 object TestXTree extends App {
-  val sizes = List(1, 10, 100, 1000, 5000, 10000, 20000)
+  val sizes = List(1, 10, 100, 1000, 5000, 10000, 20000, 50000)
   val pointsSize = 1000
   val dimensions = 8
 
-  val config = XTreeConfig(2, 100, dimensions, 0.5)
+  val config = XTreeConfig(40, 100, dimensions, 0.5)
 
   println("X-Tree")
   println("Size\tTime, ms\tIdxBuild, %\tMatches\tMatches norm.")

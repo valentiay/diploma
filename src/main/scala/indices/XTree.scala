@@ -31,7 +31,7 @@ sealed trait XTreeVertex {
 
   def insert(point: Point): Option[(XTreeVertex, XTreeVertex)]
 
-  def printMe(): Unit
+  def printMe(offset: Int = 0): Unit
 
   var isLeft: Option[Boolean] = None
 
@@ -46,11 +46,11 @@ object XTreeVertex {
     while (i < config.dimensions) {
       val sorted = elements.sortBy(element => toMbr(element).segments(i)._1)
       var k = config.minChildren
-      var s = 1e200
+      var s = 0d
       while (k < config.maxChildren - config.minChildren) {
-        val mbr1 = MBR.fromMBRs(sorted.take(k).map(toMbr)).get
-        val mbr2 = MBR.fromMBRs(sorted.drop(k).map(toMbr)).get
-        s = Math.min(s, mbr1.intersect(mbr2).map(_.volume).getOrElse(0d))
+        val mbr1 = MBR.fromMBRs(sorted.take(k).map(toMbr)).get.margin
+        val mbr2 = MBR.fromMBRs(sorted.drop(k).map(toMbr)).get.margin
+        s += mbr1 + mbr2
         k += 1
       }
       //      println(s"S: $s")
@@ -87,7 +87,7 @@ object XTreeVertex {
     val right = sorted.drop(mini)
     //    println(s"Left: $left")
     //    println(s"Right: $right")
-    //    println(s"Overlap: $minOverlap")
+//        println(s"Overlap: $minOverlap")
     if (minOverlap < config.maxOverlap) {
       Some((left, right))
     } else {
@@ -129,9 +129,9 @@ class XTreeLeaf(val elements: ArrayBuffer[Point], val config: XTreeConfig, var b
     }
   }
 
-  def printMe(): Unit = {
+  def printMe(offset: Int = 0): Unit = {
     if (MBR.apply(elements).volume != mbr.volume) println(s"NE: ${MBR.apply(elements).volume}, ${mbr.volume}")
-    println(s"Leaf: ${elements.size} elements, $blocks blocks, ${mbr.volume.formatted("%4.2f")} vol")
+    println(" " * offset + s"Leaf: ${elements.size} elements, $blocks blocks, ${mbr.segments}")
   }
 
   def find(rule: MBR): ArrayBuffer[Point] = {
@@ -187,13 +187,13 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
   }
 
   def insert(point: Point): Option[(XTreeVertex, XTreeVertex)] = {
-    var minMbr = children(0).mbr.plusPoint(point).volume
+    var minEnlargment = children(0).mbr.plusPoint(point).volume - children(0).mbr.volume
     var mini = 0
     for (i <- children.indices.tail) {
-      val newMbr = children(i).mbr.plusPoint(point).volume
-      if (newMbr < minMbr) {
+      val newEnlargment = children(i).mbr.plusPoint(point).volume - children(i).mbr.volume
+      if (newEnlargment < minEnlargment) {
         //        println("Really is contained")
-        minMbr = newMbr
+        minEnlargment = newEnlargment
         mini = i
       }
     }
@@ -222,19 +222,21 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
     }
   }
 
-  def printMe(): Unit = {
-    val overlaps = (for {
-      a <- children
-      b <- children if a != b
-    } yield a.mbr.intersect(b.mbr).fold(0d)(_.volume)).filter(_ != 0)
+  def printMe(offset: Int = 0): Unit = {
+//    val overlaps = (for {
+//      a <- children
+//      b <- children if a != b
+//    } yield a.mbr.intersect(b.mbr).fold(0d)(_.volume)).filter(_ != 0)
+//
+//    val avgOverlap = overlaps.sum / overlaps.size
 
-    val avgOverlap = overlaps.sum / overlaps.size
-
-    println(s"Node: ${children.size} children, $blocks blocks, ${avgOverlap.formatted("%4.2f")}")
-    children.foreach(_.printMe())
+    println(" " * offset + s"Node: ${children.size} children, $blocks blocks, ${mbr.segments}")
+    children.sortBy(_.mbr.segments.head._1).foreach(_.printMe(offset + 4))
   }
 
-  def find(rule: MBR): ArrayBuffer[Point] =
+  def find(rule: MBR): ArrayBuffer[Point] = {
+//    val matchingNodes = children.count(_.mbr.intersect(rule).nonEmpty)
+//    println(s"Visited ${(matchingNodes.toDouble / children.size * 100).formatted("%3.0f")}%")
     children.flatMap(vertex =>
       if (vertex.mbr.intersect(rule).nonEmpty) {
         vertex.find(rule)
@@ -242,6 +244,7 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
         ArrayBuffer.empty
       }
     )
+  }
 }
 
 object XTreeBuilder {

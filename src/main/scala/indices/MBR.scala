@@ -30,6 +30,9 @@ class MBR private(val segments: Vector[(Double, Double)]) extends AnyVal {
 
   def isContainedBy(other: MBR): Boolean =
     segments.zip(other.segments).forall { case ((a1, b1), (a2, b2)) => a2 < a1 && b1 < b2 }
+
+  def margin: Double =
+    segments.foldLeft(0d) { case (acc, (a, b)) => acc + b - a }
 }
 
 object MBR {
