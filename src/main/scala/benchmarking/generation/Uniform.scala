@@ -1,11 +1,12 @@
-package testing.generation
+package benchmarking.generation
 
 import domain.{Every, Exact, Greater, Interval, Less, Point, Rule}
+import zio.UIO
 
 import scala.util.Random
 
 object Uniform {
-  def generateRule(dimensions: Int): Rule =
+  def genRuleUnsafe(dimensions: Int): Rule =
     Vector.fill(dimensions) {
       Random.nextInt(5) match {
         case 0 =>
@@ -23,9 +24,12 @@ object Uniform {
       }
     }
 
-  def generateRules(dimensions: Int, size: Int): List[Rule] =
-    List.fill(size)(generateRule(dimensions))
+  def genRule(dimensions: Int): UIO[Rule] =
+    UIO.apply(genRuleUnsafe(dimensions))
 
-  def generatePoints(dimesnsions: Int, size: Int): List[Point] =
-    List.fill(size)(Vector.fill(dimesnsions)(Random.nextDouble()))
+  def genPointUnsafe(dimensions: Int): Point =
+    Vector.fill(dimensions)(Random.nextDouble())
+
+  def genPoint(dimensions: Int): UIO[Point] =
+    UIO.apply(genPointUnsafe(dimensions))
 }
