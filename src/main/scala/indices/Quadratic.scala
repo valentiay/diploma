@@ -7,7 +7,7 @@ import zio.interop.catz._
 
 final class Quadratic(rules: List[Rule]) extends Index {
   def ruleSatisfied(point: Point, rule: Rule): Boolean =
-    rule.zip(point).forall {
+    rule.zip(point.values).forall {
       case (restriction, feature) => restriction.satisfied(feature)
     }
 

@@ -9,18 +9,24 @@ import scala.collection.mutable.ArrayBuffer
 class XTreeBuilder(config: XTreeConfig) {
   var root: Option[XTreeVertex] = None
 
-  def insert(point: Point): Unit =
+  def insertMBR(mbr: MBR): Unit =
     root match {
       case Some(value) =>
-        value.insert(point).foreach { case (a, b, dimension) =>
+        value.insert(mbr).foreach { case (a, b, dimension) =>
           root = Some(new XTreeNode(ArrayBuffer(a, b), config, 1, a.mbr.plusMBR(b.mbr), BitSet(dimension)))
         }
       case None =>
-        root = Some(XTreeLeaf.fromPoint(point, config))
+        root = Some(XTreeLeaf.fromMBR(mbr, config))
     }
 
-  def find(rule: Rule): List[Point] =
+  def insertPoint(point: Point): Unit =
+    insertMBR(MBR.single(point))
+
+  def findRule(rule: Rule): List[MBR] =
     root.map(_.find(MBR.fromRule(rule)).toList).getOrElse(Nil)
+
+  def findPoint(point: Point): List[MBR] =
+    root.map(_.findPoint(point).toList).getOrElse(Nil)
 
   def printMe(): Unit = root.foreach(_.printMe())
 }
@@ -30,13 +36,15 @@ sealed trait XTreeVertex {
 
   def mbr: MBR
 
-  def insert(point: Point): Option[(XTreeVertex, XTreeVertex, Int)]
+  def insert(point: MBR): Option[(XTreeVertex, XTreeVertex, Int)]
 
   def printMe(offset: Int = 0): Unit
 
   var isLeft: Option[Boolean] = None
 
-  def find(rule: MBR): ArrayBuffer[Point]
+  def find(rule: MBR): ArrayBuffer[MBR]
+
+  def findPoint(point: Point): ArrayBuffer[MBR]
 
   def history: BitSet
 }
@@ -47,7 +55,7 @@ object XTreeVertex {
     var mini = 0
     var mins = 1e200
     while (i < config.dimensions) {
-      val sorted = elements.sortBy(element => toMbr(element).segments(i)._1)
+      val sorted = elements.sortBy(element => toMbr(element).starts(i))
       var k = config.minChildren
       var s = 0d
       while (k < config.maxChildren - config.minChildren) {
@@ -66,7 +74,7 @@ object XTreeVertex {
   }
 
   def splitByAxis[T](config: XTreeConfig, elements: ArrayBuffer[T], toMbr: T => MBR)(dimension: Int): Option[(ArrayBuffer[T], ArrayBuffer[T], Int)] = {
-    val sorted = elements.sortBy(element => toMbr(element).segments(dimension)._1)
+    val sorted = elements.sortBy(element => toMbr(element).starts(dimension))
     var i = config.minChildren
     var mini = 0
     var minOverlap = 1d
@@ -94,15 +102,15 @@ object XTreeVertex {
     splitByAxis(config, elements, toMbr)(chooseDimension(config, elements, toMbr))
 }
 
-class XTreeLeaf(val elements: ArrayBuffer[Point], val config: XTreeConfig, var blocks: Int, var mbr: MBR, val history: BitSet) extends XTreeVertex {
+class XTreeLeaf(val elements: ArrayBuffer[MBR], val config: XTreeConfig, var blocks: Int, var mbr: MBR, val history: BitSet) extends XTreeVertex {
 
   def split(): Option[(XTreeVertex, XTreeVertex, Int)] = {
-    XTreeVertex.topologicalSplit(config, elements, point => MBR.single(point)) match {
+    XTreeVertex.topologicalSplit(config, elements, identity[MBR]) match {
       case Some((left, right, dimension)) =>
         Some(
           (
-            new XTreeLeaf(left, config, left.size / config.maxChildren + 1, MBR.apply(left), history + dimension),
-            new XTreeLeaf(right, config, right.size / config.maxChildren + 1, MBR.apply(right), history + dimension),
+            new XTreeLeaf(left, config, left.size / config.maxChildren + 1, MBR.fromMBRsUnsafe(left), history + dimension),
+            new XTreeLeaf(right, config, right.size / config.maxChildren + 1, MBR.fromMBRsUnsafe(right), history + dimension),
             dimension
           )
         )
@@ -113,9 +121,9 @@ class XTreeLeaf(val elements: ArrayBuffer[Point], val config: XTreeConfig, var b
     }
   }
 
-  def insert(point: Point): Option[(XTreeVertex, XTreeVertex, Int)] = {
+  def insert(point: MBR): Option[(XTreeVertex, XTreeVertex, Int)] = {
     elements.addOne(point) // Вставить и выполнить корректировку
-    mbr = mbr.plusPoint(point)
+    mbr = mbr.plusMBR(point)
     if (elements.size > config.maxChildren * blocks) {
       split()
     } else {
@@ -124,27 +132,28 @@ class XTreeLeaf(val elements: ArrayBuffer[Point], val config: XTreeConfig, var b
   }
 
   def printMe(offset: Int = 0): Unit = {
-    if (MBR.apply(elements).volume != mbr.volume) println(s"NE: ${MBR.apply(elements).volume}, ${mbr.volume}")
-    println(" " * offset + s"Leaf: ${elements.size} elements, $blocks blocks, ${mbr.segments.map { case (a, b) => (a.formatted("%1.3f"), b.formatted("%1.3f")) }.mkString("[", ",", "]")}")
+    if (MBR.fromMBRsUnsafe(elements).volume != mbr.volume) println(s"NE: ${MBR.fromMBRsUnsafe(elements).volume}, ${mbr.volume}")
+    println(" " * offset + s"Leaf: ${elements.size} elements, $blocks blocks, $mbr")
   }
 
-  def find(rule: MBR): ArrayBuffer[Point] = {
-    elements.flatMap(point =>
-      Some(point).filter(rule.contains)
-    )
+  def find(rule: MBR): ArrayBuffer[MBR] = {
+    elements.collect { case mbr if mbr.isContainedByMBR(rule) => mbr }
+  }
+
+  def findPoint(point: Point): ArrayBuffer[MBR] = {
+    elements.collect { case mbr if mbr.containsPoint(point) => mbr }
   }
 }
 
 object XTreeLeaf {
-  def fromPoint(point: Point, config: XTreeConfig) = new XTreeLeaf(ArrayBuffer(point), config, 1, MBR.single(point), BitSet.empty)
+  def fromMBR(point: MBR, config: XTreeConfig) = new XTreeLeaf(ArrayBuffer(point), config, 1, point, BitSet.empty)
 }
 
 class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig, var blocks: Int, var mbr: MBR, val history: BitSet) extends XTreeVertex {
 
-  def minOverlapSplit: Option[(ArrayBuffer[XTreeVertex], ArrayBuffer[XTreeVertex], Int)] =
-  {
+  def minOverlapSplit: Option[(ArrayBuffer[XTreeVertex], ArrayBuffer[XTreeVertex], Int)] = {
     val possibleAxes = children.map(_.history).reduce(_ intersect _)
-    possibleAxes.foldLeft[Option[(ArrayBuffer[XTreeVertex], ArrayBuffer[XTreeVertex], Int)]](None){
+    possibleAxes.foldLeft[Option[(ArrayBuffer[XTreeVertex], ArrayBuffer[XTreeVertex], Int)]](None) {
       case (None, dimension) => XTreeVertex.splitByAxis[XTreeVertex](config, children, _.mbr)(dimension)
       case (res, _) => res
     }
@@ -166,17 +175,17 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
     }
   }
 
-  def insert(point: Point): Option[(XTreeVertex, XTreeVertex, Int)] = {
-    var minEnlargment = children(0).mbr.plusPoint(point).volume - children(0).mbr.volume
+  def insert(point: MBR): Option[(XTreeVertex, XTreeVertex, Int)] = {
+    var minEnlargment = children(0).mbr.plusMBR(point).volume - children(0).mbr.volume
     var mini = 0
     for (i <- children.indices.tail) {
-      val newEnlargment = children(i).mbr.plusPoint(point).volume - children(i).mbr.volume
+      val newEnlargment = children(i).mbr.plusMBR(point).volume - children(i).mbr.volume
       if (newEnlargment < minEnlargment) {
         minEnlargment = newEnlargment
         mini = i
       }
     }
-    mbr = mbr.plusPoint(point)
+    mbr = mbr.plusMBR(point)
     children(mini).insert(point).foreach {
       case (a, b, _) =>
         if (children.size == 2) {
@@ -198,14 +207,24 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
   }
 
   def printMe(offset: Int = 0): Unit = {
-    println(" " * offset + s"Node: ${children.size} children, $blocks blocks, ${mbr.segments.map { case (a, b) => (a.formatted("%1.3f"), b.formatted("%1.3f")) }.mkString("[", ",", "]")}")
-    children.sortBy(_.mbr.segments.head._1).foreach(_.printMe(offset + 4))
+    println(" " * offset + s"Node: ${children.size} children, $blocks blocks, $mbr")
+    children.sortBy(_.mbr.starts.head).foreach(_.printMe(offset + 4))
   }
 
-  def find(rule: MBR): ArrayBuffer[Point] = {
+  def find(rule: MBR): ArrayBuffer[MBR] = {
     children.flatMap(vertex =>
       if (vertex.mbr.intersect(rule).nonEmpty) {
         vertex.find(rule)
+      } else {
+        ArrayBuffer.empty
+      }
+    )
+  }
+
+  def findPoint(point: Point): ArrayBuffer[MBR] = {
+    children.flatMap(vertex =>
+      if (vertex.mbr.containsPoint(point)) {
+        vertex.findPoint(point)
       } else {
         ArrayBuffer.empty
       }
@@ -217,13 +236,19 @@ object XTreeBuilder {
 
   def fromPoints(config: XTreeConfig, points: Iterable[Point]): XTreeBuilder = {
     val bldr = new XTreeBuilder(config)
-    points.foreach(bldr.insert)
+    points.foreach(bldr.insertPoint)
+    bldr
+  }
+
+  def fromRules(config: XTreeConfig, rules: Iterable[Rule]): XTreeBuilder = {
+    val bldr = new XTreeBuilder(config)
+    rules.foreach(rule => bldr.insertMBR(MBR.fromRule(rule)))
     bldr
   }
 
   def fromChunk(config: XTreeConfig, points: fs2.Chunk[Point]): XTreeBuilder = {
     val bldr = new XTreeBuilder(config)
-    points.foreach(bldr.insert)
+    points.foreach(bldr.insertPoint)
     bldr
   }
 

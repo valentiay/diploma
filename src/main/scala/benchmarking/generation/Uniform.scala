@@ -28,7 +28,7 @@ object Uniform {
     UIO.apply(genRuleUnsafe(dimensions))
 
   def genPointUnsafe(dimensions: Int): Point =
-    Vector.fill(dimensions)(Random.nextDouble())
+    Point(Array.fill(dimensions)(Random.nextDouble()))
 
   def genPoint(dimensions: Int): UIO[Point] =
     UIO.apply(genPointUnsafe(dimensions))

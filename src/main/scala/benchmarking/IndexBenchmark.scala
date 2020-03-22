@@ -1,5 +1,6 @@
 package benchmarking
 
+import cats.Foldable
 import cats.syntax.traverse._
 import cats.instances.list._
 import domain.{Point, Rule}
@@ -34,7 +35,7 @@ class IndexBenchmark(
       BenchmarkResult(
         rulesNumber,
         pointsNumber,
-        timeNs / 100000,
+        timeNs / 1000000,
         timeNs / pointsNumber / 1000,
         0
       )

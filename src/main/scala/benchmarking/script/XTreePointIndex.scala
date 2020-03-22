@@ -12,7 +12,7 @@ object XTreePointIndex extends zio.App {
 
   val config = XTreeConfig(40, 100, dimensions, 0.5)
 
-  val rulesNumbers = fibonaccisUntil(200000)
+  val rulesNumbers = fibonaccisUntil(50000)
   val pointsNumbers = List(30000)
 
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =

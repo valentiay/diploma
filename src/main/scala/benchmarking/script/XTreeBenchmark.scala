@@ -17,7 +17,7 @@ object XTreeBenchmark extends App {
   val config = XTreeConfig(2, 5, dimensions, 0.5)
   val xtree = new XTreeBuilder(config)
   points.foreach { point =>
-    xtree.insert(point)
+    xtree.insertPoint(point)
 //    xtree.printMe()
 //    println()
 //    println()

@@ -9,10 +9,10 @@ import zio.interop.catz._
 class XTreePointIndex(rules: List[Rule], chunkSize: Int, config: XTreeConfig) extends Index {
   def findRules(points: Stream[Task, Point]): Stream[Task, (Point, Rule)] =
     points.chunkN(chunkSize).flatMap { chunk =>
-//      println(this)
-//      println(chunk.take(2))
-//      println(chunk.size)
+      //      println(this)
+      //      println(chunk.take(2))
+      //      println(chunk.size)
       val xTreeBuilder = XTreeBuilder.fromChunk(config, chunk)
-      Stream.fromIterator[Task](rules.flatMap(rule => xTreeBuilder.find(rule).map(point => (point, rule))).iterator)
+      Stream.fromIterator[Task](rules.flatMap(rule => xTreeBuilder.findRule(rule).map(mbr => (Point(mbr.starts), rule))).iterator)
     }
 }
