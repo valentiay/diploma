@@ -9,7 +9,7 @@ import zio.console._
 object TestQuadratic extends zio.App {
   val dimensions = 8
 
-  val rulesNumbers = fibonaccisUntil(50000)
+  val rulesNumbers = fibonaccisUntil(200000)
   val pointsNumbers = List(1000)
 
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
