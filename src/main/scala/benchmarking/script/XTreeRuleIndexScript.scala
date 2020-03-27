@@ -8,27 +8,27 @@ import zio.ZIO
 import zio.console.putStrLn
 
 object XTreeRuleIndexScript extends zio.App {
-  val dimensions = 8
-
   val defaultScriptConfig =
     ScriptConfig(
-      dimensions = dimensions,
+      name = "XTreeRule",
+      dimensions = List(8),
       rulesNumbers = fibonaccisUntil(50000),
       pointsNumbers = List(30000),
-      Uniform.genRule(dimensions),
-      Uniform.genPoint(dimensions)
+      Uniform.genRule,
+      Uniform.genPoint
     )
 
-  val defaultTreeConfig =
-    XTreeConfig(40, 100, dimensions, 0.5)
+  val defaultTreeConfig: Int => XTreeConfig =
+    dimensions => XTreeConfig(40, 100, dimensions, 0.5)
 
   def runScript(
                  scriptConfig: ScriptConfig,
-                 treeConfig: XTreeConfig,
+                 treeConfig: Int => XTreeConfig,
                ): ZIO[zio.ZEnv, Throwable, BenchmarkResults] =
     new IndexBenchmark(
       "XTreeRulesIndex",
-      rules => new XTreeRulesIndex(rules, treeConfig),
+      (dimensions, rules) => new XTreeRulesIndex(rules, treeConfig(dimensions)),
+      scriptConfig.dimensions,
       scriptConfig.rulesNumbers,
       scriptConfig.pointsNumbers,
       scriptConfig.genRule,

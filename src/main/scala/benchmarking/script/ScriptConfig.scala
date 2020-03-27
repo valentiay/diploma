@@ -4,9 +4,10 @@ import domain.{Point, Rule}
 import zio.UIO
 
 final case class ScriptConfig(
-    dimensions: Int,
+    name: String,
+    dimensions: List[Int],
     rulesNumbers: List[Int],
     pointsNumbers: List[Int],
-    genRule: UIO[Rule],
-    genPoint: UIO[Point]
+    genRule: Int => UIO[Rule],
+    genPoint: Int => UIO[Point]
 )

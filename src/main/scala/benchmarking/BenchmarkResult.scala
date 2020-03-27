@@ -1,6 +1,7 @@
 package benchmarking
 
 final case class BenchmarkResult(
+                                  dimensions: Int,
                                   rules: Int,
                                   points: Int,
                                   timeMs: Long,
@@ -18,11 +19,11 @@ final case class BenchmarkResults(
     val linesStrings =
       lines.map { line =>
         import line._
-        s"${rules.formatted("%9d")}\t${points.formatted("%9d")}\t${timeMs.formatted("%9d")}\t${timeNormUs.formatted("%9d")}\t${matchesPercent.formatted("%2.2f")}"
+        s"${dimensions.formatted("%9d")}\t${rules.formatted("%9d")}\t${points.formatted("%9d")}\t${timeMs.formatted("%9d")}\t${timeNormUs.formatted("%9d")}\t${matchesPercent.formatted("%2.2f")}"
       }
     s"""
        |$name $extrasString
-       |    rules\t   points\t   timeMs\ttimeNormUs\tmatchesPercent
+       |dimensions\t    rules\t   points\t   timeMs\ttimeNormUs\tmatchesPercent
        |${linesStrings.mkString("\n")}
     """.stripMargin
   }

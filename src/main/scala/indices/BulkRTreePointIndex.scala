@@ -24,9 +24,6 @@ class BulkRTreePointIndex(rules: List[Rule], chunkSize: Int, config: XTreeConfig
 
   def findRules(points: Stream[Task, Point]): Stream[Task, (Point, Rule)] =
     points.chunkN(chunkSize).flatMap { chunk =>
-      //      println(this)
-      //      println(chunk.take(2))
-      //      println(chunk.size)
       val rTree = BulkRTreeVertex.build(config.dimensions, config.maxChildren, chunkToSeq(chunk))
       Stream.fromIterator[Task](rulesMBR.flatMap(rule => rTree.findMBR(rule).map(mbr => (Point(mbr.starts), rules.head))).iterator)
     }

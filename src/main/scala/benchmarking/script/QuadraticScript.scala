@@ -7,20 +7,20 @@ import zio.{UIO, ZIO}
 import zio.console._
 
 object QuadraticScript extends zio.App {
-  val dimensions = 8
-
   val defaultScriptConfig =
     ScriptConfig(
-      dimensions = dimensions,
+      name = "Quadratic",
+      dimensions = List(8),
       rulesNumbers = fibonaccisUntil(50000),
       pointsNumbers = List(30000),
-      Uniform.genRule(dimensions),
-      Uniform.genPoint(dimensions)
+      Uniform.genRule,
+      Uniform.genPoint
     )
   def runScript(scriptConfig: ScriptConfig): ZIO[zio.ZEnv, Throwable, BenchmarkResults] =
     new IndexBenchmark(
       "Quadratic",
-      rules => new Quadratic(rules),
+      (dimensions, rules) => new Quadratic(rules),
+      scriptConfig.dimensions,
       scriptConfig.rulesNumbers,
       scriptConfig.pointsNumbers,
       scriptConfig.genRule,
