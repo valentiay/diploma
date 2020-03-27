@@ -8,6 +8,7 @@ import zio.{Task, ZIO}
 import zio.interop.catz._
 import zio.console._
 import zio.clock._
+import zio.blocking._
 import fs2.Stream
 
 class IndexBenchmark(
@@ -28,6 +29,7 @@ class IndexBenchmark(
       end <- nanoTime
       timeNs = end - start
       _ <- putStr("|")
+      _ <- effectBlocking(System.gc())
     } yield
       BenchmarkResult(
         dimensions,

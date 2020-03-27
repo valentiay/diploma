@@ -15,15 +15,13 @@ final case class BenchmarkResults(
                                    lines: List[BenchmarkResult],
                                  ) {
   def toTsv: String = {
-    val extrasString = extras.toList.map { case (k, v) => s"$k->$v" }.mkString(",", ",", "")
     val linesStrings =
       lines.map { line =>
         import line._
         s"${dimensions.formatted("%9d")}\t${rules.formatted("%9d")}\t${points.formatted("%9d")}\t${timeMs.formatted("%9d")}\t${timeNormUs.formatted("%9d")}\t${matchesPercent.formatted("%2.2f")}"
       }
     s"""
-       |$name $extrasString
-       |dimensions\t    rules\t   points\t   timeMs\ttimeNormUs\tmatchesPercent
+       |dimensions\trules\tpoints\ttimeMs\ttimeNormUs\tmatchesPercent
        |${linesStrings.mkString("\n")}
     """.stripMargin
   }
