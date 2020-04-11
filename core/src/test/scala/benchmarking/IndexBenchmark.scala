@@ -1,5 +1,7 @@
 package benchmarking
 
+import java.util.UUID
+
 import cats.syntax.traverse._
 import cats.instances.list._
 import domain.{Point, Rule}
@@ -13,7 +15,7 @@ import fs2.Stream
 
 class IndexBenchmark(
                       name: String,
-                      mkIndex: (Int, List[Rule]) => Index,
+                      mkIndex: (Int, List[(Rule, UUID)]) => Index,
                       dimensionsNumber: List[Int],
                       rulesNumbers: List[Int],
                       pointsNumbers: List[Int],
@@ -22,7 +24,7 @@ class IndexBenchmark(
                     ) {
   def singleResult(dimensions: Int, rulesNumber: Int, pointsNumber: Int): ZIO[zio.ZEnv, Throwable, BenchmarkResult] = {
     for {
-      rules <- List.fill(rulesNumber)(genRule(dimensions)).sequence
+      rules <- List.fill(rulesNumber)(genRule(dimensions).map(rule => (rule, UUID.randomUUID()))).sequence
       points = Stream.repeatEval(genPoint(dimensions)).take(pointsNumber)
       start <- nanoTime
       _ <- mkIndex(dimensions, rules).findRules(points).compile.drain

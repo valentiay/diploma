@@ -1,9 +1,8 @@
 package indices
 
-import domain.{Point, Rule}
-import zio.Task
+import domain.{Match, Point}
 import fs2.Stream
 
 trait Index {
-  def findRules(points: Stream[Task, Point]): Stream[Task, (Point, Rule)]
+  def findRules(points: Stream[ERIO, Point]): Stream[ERIO, Match]
 }

@@ -1,18 +1,19 @@
 package indices
 
-import domain.{Point, Rule}
-import zio.Task
+import java.util.UUID
+
+import domain.{Match, Point, Rule}
 import fs2.Stream
 import zio.interop.catz._
 
-final class Quadratic(rules: List[Rule]) extends Index {
+final class Quadratic(rules: List[(Rule, UUID)]) extends Index {
   def ruleSatisfied(point: Point, rule: Rule): Boolean =
     rule.zip(point.values).forall {
       case (restriction, feature) => restriction.satisfied(feature)
     }
 
-  def findRules(points: Stream[Task, Point]): Stream[Task, (Point, Rule)] =
+  def findRules(points: Stream[ERIO, Point]): Stream[ERIO, Match] =
     points.flatMap { point =>
-      Stream.fromIterator[Task](rules.collect { case rule if ruleSatisfied(point, rule) => (point, rule) }.iterator)
+      Stream.fromIterator[ERIO](rules.collect { case (rule, uuid) if ruleSatisfied(point, rule) => Match(point, uuid) }.iterator)
     }
 }

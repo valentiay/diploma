@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package domain.protobuf;
+
+message Point {
+  repeated double values = 1;
+}
+
+message Match {
+  Point point = 1;
+  bytes ruleId = 3;
+}

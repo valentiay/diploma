@@ -19,6 +19,9 @@ libraryDependencies in ThisBuild ++= Seq(
 
 lazy val core =
   (project in file("core"))
+    .settings(
+      PB.targets in Compile := Seq(scalapb.gen() -> (sourceManaged in Compile).value)
+    )
 
 lazy val classifier =
   (project in file("classifier"))

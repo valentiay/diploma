@@ -95,6 +95,9 @@ class MBR private(val starts: Array[Double], val ends: Array[Double]) {
     margin
   }
 
+  def toPoint: Point =
+    Point(starts)
+
   override def toString: String = {
     (for (i <- starts.indices) yield (starts(i).formatted("%1.3f"), ends(i).formatted("%1.3f"))).mkString("[", ",", "]")
   }

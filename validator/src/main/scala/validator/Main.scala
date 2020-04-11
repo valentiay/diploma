@@ -2,43 +2,33 @@ package validator
 
 import java.util.UUID
 
-import cats.effect.{ConcurrentEffect, ContextShift, Timer}
+import domain.serde
 import fs2.kafka._
-import zio.{RIO, ZIO}
+import indices.ERIO
+import zio.ZIO
 import zio.console._
-import zio.system._
+import zio.interop.catz._
 
 object Main extends zio.App {
-  type ERIO[A] = RIO[zio.ZEnv, A]
 
-  implicit val concurrentEffectTask: ConcurrentEffect[ERIO] = zio.interop.catz.taskEffectInstance(Main)
-  implicit val contextShiftTask: ContextShift[ERIO] = zio.interop.catz.zioContextShift
-  implicit val timerTask: Timer[ERIO] = zio.interop.catz.zioTimer
-
-  val topic = "points"
-  val group = "group"
+  implicit def runtime: zio.Runtime[zio.ZEnv] = Main
 
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
-  (for {
-      bootstrapServers <- env("KAFKA_BOOTSTRAP_SERVERS").flatMap {
-        case Some(servers) => ZIO.effectTotal(servers)
-        case None => ZIO.fail(new IllegalArgumentException("KAFKA_BOOTSTRAP_SERVERS env variable required"))
-      }
-
-      _ <- putStrLn(bootstrapServers)
+    (for {
+      config <- ValidatorConfig.read
 
       consumerSettings = ConsumerSettings(
         keyDeserializer = Deserializer[ERIO, UUID],
-        valueDeserializer = Deserializer[ERIO, String]
-      ).withAutoOffsetReset(AutoOffsetReset.Earliest)
-      .withBootstrapServers(bootstrapServers)
-      .withGroupId(group)
+        valueDeserializer = serde.matchDeserializer[ERIO]
+      ).withAutoOffsetReset(AutoOffsetReset.Latest)
+        .withBootstrapServers(config.bootstrapServers)
+        .withGroupId(config.group)
 
       _ <- consumerStream(consumerSettings)
-            .evalTap(_.subscribeTo(topic))
-            .flatMap(_.stream)
-            .evalTap(record => putStrLn(record.record.value))
-            .compile
-            .drain
-    } yield 0).catchAllCause(err => putStrLn(err.toString).as(1))
+        .evalTap(_.subscribeTo(config.inputTopic))
+        .flatMap(_.stream)
+        .evalTap(record => putStrLn(record.record.value.toString))
+        .compile
+        .drain
+    } yield 0).catchAllCause(err => putStrLn(err.untraced.prettyPrint).as(1))
 }
