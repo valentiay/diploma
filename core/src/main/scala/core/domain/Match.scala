@@ -1,7 +1,7 @@
-package domain
+package core.domain
 
 import cats.syntax.option._
-import domain.protobuf.models.{Match => ProtoMatch}
+import core.domain.protobuf.models.{Match => ProtoMatch}
 import java.util.UUID
 
 final case class Match(point: Point, ruleId: UUID) {

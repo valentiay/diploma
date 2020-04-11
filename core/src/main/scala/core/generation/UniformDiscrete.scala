@@ -1,6 +1,6 @@
-package benchmarking.generation
+package core.generation
 
-import domain.{Interval, Rule}
+import core.domain.{Interval, Rule}
 import zio.UIO
 
 import scala.util.Random

@@ -1,9 +1,9 @@
 package benchmarking.script
 
 import benchmarking.{BenchmarkResults, IndexBenchmark}
-import indices.XTreeRulesIndex
-import indices.XTreeBuilder.XTreeConfig
-import benchmarking.generation.Uniform
+import core.indices.XTreeRulesIndex
+import core.indices.XTreeBuilder.XTreeConfig
+import core.generation.Uniform
 import zio.ZIO
 import zio.console.putStrLn
 

@@ -1,4 +1,4 @@
-package domain
+package core.domain
 
 sealed trait Restriction {
   def satisfied(a: Double): Boolean

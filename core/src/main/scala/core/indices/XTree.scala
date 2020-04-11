@@ -1,9 +1,9 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.{Point, Rule}
-import indices.XTreeBuilder.XTreeConfig
+import core.domain.{Point, Rule}
+import core.indices.XTreeBuilder.XTreeConfig
 
 import scala.collection.immutable.BitSet
 import scala.collection.mutable.ArrayBuffer

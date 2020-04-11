@@ -2,15 +2,15 @@ package benchmarking.script
 
 import java.nio.file.{Files, Path, Paths}
 
-import benchmarking.generation.{Uniform, UniformDiscrete, UniformLimited}
-import zio.ZIO
-import zio.console._
-import zio.interop.catz._
-import cats.syntax.traverse._
 import cats.instances.list._
-import indices.XTreeBuilder.XTreeConfig
+import cats.syntax.traverse._
+import core.generation.{Uniform, UniformDiscrete, UniformLimited}
+import core.indices.XTreeBuilder.XTreeConfig
+import zio.ZIO
 import zio.blocking._
 import zio.clock._
+import zio.console._
+import zio.interop.catz._
 
 object FullScript extends zio.App {
   val scriptConfigs = List(

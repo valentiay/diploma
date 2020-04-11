@@ -1,11 +1,11 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.{Match, Point, Rule}
-import zio.interop.catz._
+import core.domain.{Match, Point, Rule}
+import core.indices.XTreeBuilder.XTreeConfig
 import fs2.Stream
-import indices.XTreeBuilder.XTreeConfig
+import zio.interop.catz._
 
 class BulkRTreeRulesIndex(rules: List[(Rule, UUID)], config: XTreeConfig) extends Index {
 

@@ -1,6 +1,6 @@
-package benchmarking.generation
+package core.generation
 
-import domain.{Every, Exact, Greater, Interval, Less, Point, Rule}
+import core.domain.{Every, Exact, Greater, Interval, Less, Point, Rule}
 import zio.UIO
 
 import scala.util.Random

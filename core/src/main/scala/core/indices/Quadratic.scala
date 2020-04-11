@@ -1,8 +1,8 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.{Match, Point, Rule}
+import core.domain.{Match, Point, Rule}
 import fs2.Stream
 import zio.interop.catz._
 

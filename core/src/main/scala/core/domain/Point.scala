@@ -1,6 +1,6 @@
-package domain
+package core.domain
 
-import domain.protobuf.models.{Point => ProtoPoint}
+import core.domain.protobuf.models.{Point => ProtoPoint}
 
 final case class Point(values: Array[Double]) extends AnyVal with Serializable {
   override def toString: String =

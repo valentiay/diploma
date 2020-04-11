@@ -4,8 +4,8 @@ import java.util.UUID
 
 import cats.syntax.traverse._
 import cats.instances.list._
-import domain.{Point, Rule}
-import indices.Index
+import core.domain.{Point, Rule}
+import core.indices.Index
 import zio.{Task, ZIO}
 import zio.interop.catz._
 import zio.console._

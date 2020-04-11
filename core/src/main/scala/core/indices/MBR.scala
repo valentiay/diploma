@@ -1,8 +1,8 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.{Every, Exact, Greater, Interval, Less, Point, Rule}
+import core.domain.{Every, Exact, Greater, Interval, Less, Point, Rule}
 import cats.instances.vector._
 import cats.instances.option._
 import cats.syntax.traverse._

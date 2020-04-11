@@ -1,10 +1,10 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.{Match, Point, Rule}
+import core.domain.{Match, Point, Rule}
 import fs2.{Chunk, Stream}
-import indices.XTreeBuilder.XTreeConfig
+import core.indices.XTreeBuilder.XTreeConfig
 import zio.interop.catz._
 
 import scala.collection.immutable.ArraySeq

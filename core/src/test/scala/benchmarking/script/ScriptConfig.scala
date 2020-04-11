@@ -1,6 +1,6 @@
 package benchmarking.script
 
-import domain.{Point, Rule}
+import core.domain.{Point, Rule}
 import zio.UIO
 
 final case class ScriptConfig(

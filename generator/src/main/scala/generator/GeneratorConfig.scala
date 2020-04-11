@@ -1,7 +1,7 @@
 package generator
 
-import benchmarking.generation.Uniform
-import domain.Point
+import core.generation.Uniform
+import core.domain.Point
 import zio.{UIO, RIO}
 import zio.system._
 

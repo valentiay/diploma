@@ -1,8 +1,8 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.Point
+import core.domain.Point
 
 trait BulkRTreeVertex {
   def mbr: MBR

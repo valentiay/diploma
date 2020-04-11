@@ -1,7 +1,7 @@
-package domain
+package core.domain
 
 import fs2.kafka.{Deserializer, Serializer}
-import domain.protobuf.models.{Point => ProtoPoint, Match => ProtoMatch}
+import core.domain.protobuf.models.{Point => ProtoPoint, Match => ProtoMatch}
 import cats.effect.Sync
 
 object serde {

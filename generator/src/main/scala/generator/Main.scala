@@ -5,8 +5,8 @@ import java.util.UUID
 import cats.effect.{ConcurrentEffect, ContextShift}
 import fs2.Stream
 import fs2.kafka._
-import domain.{Point, serde}
-import indices.ERIO
+import core.domain.{Point, serde}
+import core.indices.ERIO
 import zio.{RIO, UIO, ZIO}
 import zio.clock._
 import zio.duration._

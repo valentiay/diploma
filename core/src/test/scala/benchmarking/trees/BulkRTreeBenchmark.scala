@@ -2,8 +2,8 @@ package benchmarking.trees
 
 import java.util.UUID
 
-import benchmarking.generation.Uniform
-import indices.{BulkRTreeVertex, MBR}
+import core.generation.Uniform
+import core.indices.{BulkRTreeVertex, MBR}
 
 import scala.util.Random
 

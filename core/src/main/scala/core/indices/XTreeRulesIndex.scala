@@ -1,10 +1,10 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.{Match, Point, Rule}
+import core.domain.{Match, Point, Rule}
 import fs2.Stream
-import indices.XTreeBuilder.XTreeConfig
+import core.indices.XTreeBuilder.XTreeConfig
 import zio.interop.catz._
 
 class XTreeRulesIndex(rules: List[(Rule, UUID)], config: XTreeConfig) extends Index {

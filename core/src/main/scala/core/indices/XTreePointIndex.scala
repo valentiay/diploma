@@ -1,9 +1,9 @@
-package indices
+package core.indices
 
 import java.util.UUID
 
-import domain.{Match, Point, Rule}
-import indices.XTreeBuilder.XTreeConfig
+import core.domain.{Match, Point, Rule}
+import core.indices.XTreeBuilder.XTreeConfig
 import fs2.Stream
 import zio.interop.catz._
 

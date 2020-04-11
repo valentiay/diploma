@@ -2,9 +2,9 @@ package validator
 
 import java.util.UUID
 
-import domain.serde
+import core.domain.serde
 import fs2.kafka._
-import indices.ERIO
+import core.indices.ERIO
 import zio.ZIO
 import zio.console._
 import zio.interop.catz._

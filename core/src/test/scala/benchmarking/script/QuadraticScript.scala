@@ -1,8 +1,8 @@
 package benchmarking.script
 
-import indices.Quadratic
+import core.indices.Quadratic
 import benchmarking.{BenchmarkResults, IndexBenchmark}
-import benchmarking.generation.Uniform
+import core.generation.Uniform
 import zio.{UIO, ZIO}
 import zio.console._
 

@@ -1,8 +1,8 @@
 package benchmarking.trees
 
-import benchmarking.generation.Uniform
-import indices.XTreeBuilder
-import indices.XTreeBuilder.XTreeConfig
+import core.generation.Uniform
+import core.indices.XTreeBuilder
+import core.indices.XTreeBuilder.XTreeConfig
 
 import scala.util.Random
 

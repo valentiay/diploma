@@ -1,3 +1,5 @@
+package core
+
 import zio.RIO
 
 package object indices {

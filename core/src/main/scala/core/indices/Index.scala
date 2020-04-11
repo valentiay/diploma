@@ -1,6 +1,6 @@
-package indices
+package core.indices
 
-import domain.{Match, Point}
+import core.domain.{Match, Point}
 import fs2.Stream
 
 trait Index {

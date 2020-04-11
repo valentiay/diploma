@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package domain.protobuf;
+package core.domain.protobuf;
 
 message Point {
   repeated double values = 1;

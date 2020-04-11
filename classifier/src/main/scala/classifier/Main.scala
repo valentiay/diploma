@@ -2,13 +2,13 @@ package classifier
 
 import java.util.UUID
 
-import benchmarking.generation.Uniform
+import core.generation.Uniform
 import cats.effect.{ConcurrentEffect, ContextShift, Timer}
 import com.twitter.finagle.Http
 import fs2.kafka.{AutoOffsetReset, ConsumerSettings, Deserializer, ProducerRecord, ProducerRecords, ProducerSettings, Serializer, consumerStream, produce}
-import domain.{Point, serde}
-import indices.{BulkRTreeRulesIndex, ERIO}
-import indices.XTreeBuilder.XTreeConfig
+import core.domain.{Point, serde}
+import core.indices.{BulkRTreeRulesIndex, ERIO}
+import core.indices.XTreeBuilder.XTreeConfig
 import io.finch._
 import zio.{RIO, Task, ZIO}
 import zio.console._
