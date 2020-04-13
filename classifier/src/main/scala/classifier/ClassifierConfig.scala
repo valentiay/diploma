@@ -1,14 +1,24 @@
 package classifier
 
+import java.util.UUID
+
+import core.database.MongoRulesStorage.MongoConfig
+import core.domain.{Match, Point, serde}
+import core.indices.ERIO
+import fs2.kafka.{AutoOffsetReset, ConsumerSettings, Deserializer, ProducerSettings, Serializer}
 import zio.RIO
+import zio.duration._
 import zio.system._
+import zio.interop.catz._
 
 final case class ClassifierConfig(
+                                   rulesTtl: Duration,
                                    dimensions: Int,
-                                   bootstrapServers: String,
                                    inputTopic: String,
                                    outputTopic: String,
-                                   group: String
+                                   consumerSettings: ConsumerSettings[ERIO, UUID, Point],
+                                   producerSettings: ProducerSettings[ERIO, UUID, Match],
+                                   mongo: MongoConfig,
                                  )
 
 object ClassifierConfig {
@@ -33,11 +43,29 @@ object ClassifierConfig {
         case Some(value) => value
       }
 
+      consumerSettings = ConsumerSettings(
+        keyDeserializer = Deserializer[ERIO, UUID],
+        valueDeserializer = serde.pointDeserializer[ERIO]
+      ).withAutoOffsetReset(AutoOffsetReset.Latest)
+        .withBootstrapServers(bootstrapServers)
+        .withGroupId("classifier")
+
+      producerSettings = ProducerSettings(
+        keySerializer = Serializer[ERIO, UUID],
+        valueSerializer = serde.matchSerializer[ERIO]
+      ).withBootstrapServers(bootstrapServers)
+
+      mongoHosts <- env("MONGO_HOSTS").collect(new IllegalArgumentException("MONGO_HOSTS must be set")) {
+        case Some(host) => List(host)
+      }
+
     } yield ClassifierConfig(
+      rulesTtl = 5.minutes,
       dimensions = dimensions,
-      bootstrapServers = bootstrapServers,
       inputTopic = inputTopic,
       outputTopic = outputTopic,
-      group = "classifier"
+      consumerSettings = consumerSettings,
+      producerSettings = producerSettings,
+      mongo = MongoConfig(mongoHosts, "diploma", "password")
     )
 }

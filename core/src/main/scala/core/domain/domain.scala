@@ -29,4 +29,9 @@ package object domain {
     bb.putLong(uuid.getLeastSignificantBits)
     ByteString.copyFrom(bb.array())
   }
+
+  def ruleSatisfied(point: Point, rule: Rule): Boolean =
+    rule.zip(point.values).forall {
+      case (restriction, feature) => restriction.satisfied(feature)
+    }
 }

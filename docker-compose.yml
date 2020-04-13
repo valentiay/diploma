@@ -17,13 +17,27 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: diploma
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
   generator:
     image: generator:0.1
     environment:
       DIMENSIONS: 8
+      NUM_RULES: 20000
+      GEN_RULE: uniform
       GEN_POINT: uniform
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       OUTPUT_TOPIC: points
+      MONGO_HOSTS: mongo
 
   classifier:
     image: classifier:0.1
@@ -32,6 +46,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INPUT_TOPIC: points
       OUTPUT_TOPIC: matches
+      MONGO_HOSTS: mongo
 
   validator:
     image: validator:0.1
@@ -39,3 +54,4 @@ services:
       DIMENSIONS: 8
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INPUT_TOPIC: matches
+      MONGO_HOSTS: mongo

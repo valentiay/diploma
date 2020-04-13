@@ -13,6 +13,8 @@ libraryDependencies in ThisBuild ++= Seq(
   "com.github.fd4s" %% "fs2-kafka" % "1.0.0",
   "dev.zio" %% "zio" % "1.0.0-RC18-2",
   "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC12",
+  "org.reactivemongo" %% "reactivemongo" % "0.20.3",
+  "org.reactivemongo" % "reactivemongo-shaded-native" % "0.20.3-linux-x86-64" % "runtime",
   "io.prometheus" % "simpleclient" % "0.8.1",
   "com.github.finagle" %% "finchx-core" % "0.32.1"
 )

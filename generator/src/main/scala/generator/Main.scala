@@ -2,17 +2,15 @@ package generator
 
 import java.util.UUID
 
-import cats.effect.{ConcurrentEffect, ContextShift}
-import fs2.Stream
-import fs2.kafka._
+import core.database.MongoRulesStorage
 import core.domain.{Point, serde}
 import core.indices.ERIO
-import zio.{RIO, UIO, ZIO}
-import zio.clock._
-import zio.duration._
+import fs2.Stream
+import fs2.kafka._
+import reactivemongo.api.AsyncDriver
 import zio.console._
 import zio.interop.catz._
-import zio.system._
+import zio.ZIO
 
 object Main extends zio.App {
   implicit def runtime: zio.Runtime[zio.ZEnv] = Main
@@ -21,11 +19,11 @@ object Main extends zio.App {
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
     (for {
       config <- GeneratorConfig.read
-
-      producerSettings = ProducerSettings(
-        keySerializer = Serializer[ERIO, UUID],
-        valueSerializer = serde.pointSerializer[ERIO]
-      ).withBootstrapServers(config.bootstrapServers)
+      driver = AsyncDriver()
+      rulesStorage <- MongoRulesStorage.make(driver, config.mongo)
+      _ <- rulesStorage.clear
+      rules <- ZIO.collectAll(ZIO.replicate(config.numRules)(config.genRule))
+      _ <- rulesStorage.putRules(rules)
 
       _ <- Stream.repeatEval[ERIO, Point](config.genPoint)
         .evalTap(i => putStrLn(i.toString))
@@ -33,7 +31,7 @@ object Main extends zio.App {
           val record = ProducerRecord(config.outputTopic, UUID.randomUUID, point)
           ProducerRecords.one(record)
         }
-        .through(produce(producerSettings))
+        .through(produce(config.producerSettings))
         .compile
         .drain
     } yield 0).catchAllCause(err => putStrLn(err.untraced.prettyPrint).as(1))
