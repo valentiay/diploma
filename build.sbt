@@ -16,6 +16,8 @@ libraryDependencies in ThisBuild ++= Seq(
   "org.reactivemongo" %% "reactivemongo" % "0.20.3",
   "org.reactivemongo" % "reactivemongo-shaded-native" % "0.20.3-linux-x86-64" % "runtime",
   "io.prometheus" % "simpleclient" % "0.8.1",
+  "io.prometheus" % "simpleclient_common" % "0.8.1",
+  "io.prometheus" % "simpleclient_hotspot" % "0.8.1",
   "com.github.finagle" %% "finchx-core" % "0.32.1"
 )
 

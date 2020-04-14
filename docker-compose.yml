@@ -16,6 +16,8 @@ services:
       KAFKA_CLEANUP_POLICY: delete
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zookeeper
 
   mongo:
     image: mongo
@@ -28,6 +30,13 @@ services:
     volumes:
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
   generator:
     image: generator:0.1
     environment:
@@ -38,15 +47,24 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       OUTPUT_TOPIC: points
       MONGO_HOSTS: mongo
+    depends_on:
+      - mongo
+      - kafka
 
   classifier:
     image: classifier:0.1
+    ports:
+      - "8080:8080"
     environment:
       DIMENSIONS: 8
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INPUT_TOPIC: points
       OUTPUT_TOPIC: matches
       MONGO_HOSTS: mongo
+    depends_on:
+      - mongo
+      - kafka
+      - prometheus
 
   validator:
     image: validator:0.1
@@ -55,3 +73,6 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INPUT_TOPIC: matches
       MONGO_HOSTS: mongo
+    depends_on:
+      - mongo
+      - kafka
