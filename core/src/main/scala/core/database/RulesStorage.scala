@@ -16,7 +16,9 @@ import reactivemongo.api.bson.exceptions.ValueDoesNotMatchException
 import reactivemongo.api.bson.{BSONArray, BSONDocument, BSONDocumentHandler, BSONDouble, BSONHandler, BSONString, BSONValue, Macros, document}
 import reactivemongo.api.{AsyncDriver, FailoverStrategy, MongoConnectionOptions}
 import reactivemongo.core.nodeset.Authenticate
-import zio.ZIO
+import zio.{Schedule, ZIO}
+import zio.console._
+import zio.duration._
 
 import scala.util.{Failure, Success, Try}
 
@@ -162,10 +164,11 @@ object MongoRulesStorage {
       failoverStrategy = FailoverStrategy.remote
     )
 
-    for {
+    (for {
+      _ <- putStrLn("Connecting to mongo")
       connection <- ZIO.fromFuture(implicit ec => driver.connect(config.hosts, connectionOptions))
       db <- ZIO.fromFuture(implicit ec => connection.database("diploma"))
       collection = db.collection[BSONCollection]("rules")
-    } yield new MongoRulesStorage(collection)
+    } yield new MongoRulesStorage(collection)).onError(_ => putStrLn("Connection failed, retrying...")).retry(Schedule.recurs(10))
   }
 }

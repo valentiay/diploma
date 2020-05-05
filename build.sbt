@@ -27,16 +27,6 @@ lazy val core =
       PB.targets in Compile := Seq(scalapb.gen() -> (sourceManaged in Compile).value)
     )
 
-lazy val classifier =
-  (project in file("classifier"))
-    .dependsOn(core)
-    .enablePlugins(JavaAppPackaging)
-    .enablePlugins(DockerPlugin)
-    .settings(
-      mainClass in Compile := Some("classifier.Main"),
-      dockerExposedPorts += 8080
-    )
-
 lazy val generator =
   (project in file("generator"))
     .dependsOn(core)
@@ -44,7 +34,21 @@ lazy val generator =
     .enablePlugins(DockerPlugin)
     .settings(
       mainClass in Compile := Some("generator.Main"),
-      dockerExposedPorts += 8081
+      dockerExposedPorts += 8081,
+      dockerUsername := Some("valentiay"),
+      dockerUpdateLatest := true
+    )
+
+lazy val classifier =
+  (project in file("classifier"))
+    .dependsOn(core)
+    .enablePlugins(JavaAppPackaging)
+    .enablePlugins(DockerPlugin)
+    .settings(
+      mainClass in Compile := Some("classifier.Main"),
+      dockerExposedPorts += 8080,
+      dockerUsername := Some("valentiay"),
+      dockerUpdateLatest := true
     )
 
 lazy val validator =
@@ -54,5 +58,7 @@ lazy val validator =
     .enablePlugins(DockerPlugin)
     .settings(
       mainClass in Compile := Some("validator.Main"),
-      dockerExposedPorts += 8082
+      dockerExposedPorts += 8082,
+      dockerUsername := Some("valentiay"),
+      dockerUpdateLatest := true
     )

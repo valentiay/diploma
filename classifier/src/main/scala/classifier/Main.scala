@@ -6,7 +6,7 @@ import com.twitter.finagle.Http
 import fs2.kafka.{ProducerRecord, ProducerRecords, consumerStream, produce}
 import core.domain.{Point, Rule}
 import core.database.{MongoRulesStorage, RulesStorage}
-import core.indices.{BulkRTreeRulesIndex, ERIO, Index}
+import core.indices.{BulkRTreeRulesIndex, Quadratic, ERIO, Index}
 import core.indices.XTreeBuilder.XTreeConfig
 import io.finch._
 import io.prometheus.client.{CollectorRegistry, Counter}
@@ -16,7 +16,6 @@ import reactivemongo.api.AsyncDriver
 import zio.{Task, ZIO}
 import zio.console._
 import zio.interop.catz._
-
 import java.io.StringWriter
 
 object Main extends zio.App with Endpoint.Module[Task] {

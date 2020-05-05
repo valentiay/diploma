@@ -55,9 +55,7 @@ object BulkRTreeVertex {
   }
 
   def build(dimensions: Int, maxChildren: Int, mbrs: Seq[(MBR, UUID)]): BulkRTreeVertex = {
-    val n = mbrs.size
     val h = Math.ceil(Math.log10(mbrs.size) / Math.log10(maxChildren)).toInt
-    val s = (Math.pow(maxChildren, h) - mbrs.size).toInt
     val nSubtree = Math.pow(maxChildren, h - 1).toInt
 
     def go(dimension: Int, values: Seq[(MBR, UUID)], overrideSize: Option[Int] = None): BulkRTreeVertex = {

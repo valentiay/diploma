@@ -21,9 +21,10 @@ object Main extends zio.App {
       config <- GeneratorConfig.read
       driver = AsyncDriver()
       rulesStorage <- MongoRulesStorage.make(driver, config.mongo)
+
       _ <- rulesStorage.clear
       rules <- ZIO.collectAll(ZIO.replicate(config.numRules)(config.genRule))
-      _ <- rulesStorage.putRules(rules)
+      _ <- ZIO.foreach(rules.grouped(10000).toList)(group => rulesStorage.putRules(group) *> putStrLn("Rules group put"))
 
       _ <- Stream.repeatEval[ERIO, Point](config.genPoint)
         .evalTap(i => putStrLn(i.toString))
