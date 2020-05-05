@@ -4,10 +4,9 @@ import java.util.UUID
 
 import com.twitter.finagle.Http
 import fs2.kafka.{ProducerRecord, ProducerRecords, consumerStream, produce}
-import core.domain.{Point, Rule}
+import core.domain.Point
 import core.database.{MongoRulesStorage, RulesStorage}
-import core.indices.{BulkRTreeRulesIndex, Quadratic, ERIO, Index}
-import core.indices.XTreeBuilder.XTreeConfig
+import core.indices.{ERIO, Index}
 import io.finch._
 import io.prometheus.client.{CollectorRegistry, Counter}
 import io.prometheus.client.exporter.common.TextFormat
@@ -36,9 +35,6 @@ object Main extends zio.App with Endpoint.Module[Task] {
     }
   }
 
-  def makeIndex(config: ClassifierConfig)(rules: List[(Rule, UUID)]) =
-    new BulkRTreeRulesIndex(rules, XTreeConfig(156, 250, config.dimensions, 0.5))
-
   def runPipeline(config: ClassifierConfig, index: Index): ERIO[Unit] =
     consumerStream[ERIO, UUID, Point](config.consumerSettings)
       .evalTap(_.subscribeTo(config.inputTopic))
@@ -60,9 +56,8 @@ object Main extends zio.App with Endpoint.Module[Task] {
       .getRules
       .doUntil(_.nonEmpty)
       .tap(_ => putStrLn("Building Index"))
-      .map(makeIndex(config))
-      .flatMap(index => runPipeline(config, index))
-      .timeout(config.rulesTtl)
+      .map(config.makeIndex)
+      .flatMap(index => runPipeline(config, index).timeout(config.rulesTtl))
       .forever
 
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
@@ -72,6 +67,6 @@ object Main extends zio.App with Endpoint.Module[Task] {
       driver = AsyncDriver()
       rulesStorage <- MongoRulesStorage.make(driver, config.mongo)
       _ <- runProcess(config, rulesStorage).forkDaemon
-      _ <- Task(Http.server.serve(":8080", api.toServiceAs[Text.Plain])) *> ZIO.never
+      _ <- Task(Http.server.serve(":8081", api.toServiceAs[Text.Plain])) *> ZIO.never
     } yield 0).catchAllCause(err => putStrLn(err.untraced.prettyPrint).as(1))
 }

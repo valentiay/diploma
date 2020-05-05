@@ -45,6 +45,8 @@ services:
 
   generator:
     image: valentiay/generator
+    ports:
+      - "8080:8080"
     environment:
       DIMENSIONS: 8
       NUM_RULES: 50000
@@ -60,23 +62,24 @@ services:
   classifier:
     image: valentiay/classifier
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       DIMENSIONS: 8
+      INDEX_TYPE: bulkRTreePoint
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INPUT_TOPIC: points
       OUTPUT_TOPIC: matches
       MONGO_HOSTS: mongo
     deploy:
-      replicas: 2
+      replicas: 4
     depends_on:
       - mongo
       - kafka
-    labels:
-      prometheus.port: "8080"
 
   validator:
     image: valentiay/validator
+    ports:
+      - "8082:8082"
     environment:
       DIMENSIONS: 8
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092

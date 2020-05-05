@@ -3,10 +3,26 @@ global:
   scrape_timeout: 1s
 
 scrape_configs:
+  - job_name: generator
+    metrics_path: /metrics
+    dns_sd_configs:
+      - names:
+          - "tasks.generator"
+        type: "A"
+        port: 8080
+
   - job_name: classifier
     metrics_path: /metrics
     dns_sd_configs:
-    - names:
-      - "tasks.classifier"
-      type: "A"
-      port: 8080
+      - names:
+          - "tasks.classifier"
+        type: "A"
+        port: 8081
+
+  - job_name: validator
+    metrics_path: /metrics
+    dns_sd_configs:
+      - names:
+          - "tasks.validator"
+        type: "A"
+        port: 8082
