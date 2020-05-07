@@ -17,7 +17,7 @@ object FullScript extends zio.App {
     ScriptConfig(
       name = "uniform",
       dimensions = List(2, 4, 8, 16, 24, 32),
-      rulesNumbers = List(46000), //fibonaccisUntil(50000),
+      rulesNumbers = fibonaccisUntil(50000),
       pointsNumbers = List(30000),
       Uniform.genRule,
       Uniform.genPoint
