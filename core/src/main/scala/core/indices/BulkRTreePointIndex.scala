@@ -10,7 +10,8 @@ import zio.interop.catz._
 import scala.collection.immutable.ArraySeq
 
 class BulkRTreePointIndex(rules: List[(Rule, UUID)], chunkSize: Int, config: XTreeConfig) extends Index {
-  private val rulesMBRs: List[(MBR, UUID)] = rules.map { case (rule, uuid) => (MBR.fromRule(rule), uuid) }
+  private val rulesMBRs: List[(MBR, UUID)] =
+    rules.map { case (rule, uuid) => (MBR.fromRule(rule), uuid) }
 
   private val uuidStub = UUID.randomUUID()
 
@@ -27,11 +28,16 @@ class BulkRTreePointIndex(rules: List[(Rule, UUID)], chunkSize: Int, config: XTr
 
   def findRules(points: Stream[ERIO, Point]): Stream[ERIO, Match] =
     points.chunkN(chunkSize).flatMap { chunk =>
-      val rTree = BulkRTreeVertex.build(config.dimensions, config.maxChildren, chunkToSeq(chunk))
+      val rTree = BulkRTree.build(config.dimensions, config.maxChildren, chunkToSeq(chunk))
       Stream.fromIterator[ERIO](
         rulesMBRs
-          .flatMap(rule => rTree.findMBR(rule._1).map(res => Match(res._1.toPoint, rule._2)))
           .iterator
+          .flatMap { rule =>
+            rTree
+              .findMBR(rule._1)
+              .iterator
+              .map(res => Match(res._1.toPoint, rule._2))
+          }
       )
     }
 }

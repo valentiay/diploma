@@ -1,11 +1,6 @@
 package core.indices
 
-import java.util.UUID
-
 import core.domain.{Every, Exact, Greater, Interval, Less, Point, Rule}
-import cats.instances.vector._
-import cats.instances.option._
-import cats.syntax.traverse._
 
 class MBR private(val starts: Array[Double], val ends: Array[Double]) {
 

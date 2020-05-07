@@ -17,31 +17,31 @@ object FullScript extends zio.App {
     ScriptConfig(
       name = "uniform",
       dimensions = List(2, 4, 8, 16, 24, 32),
-      rulesNumbers = fibonaccisUntil(50000).zipWithIndex.collect{case (e, idx) if idx % 2 == 0 => e},
+      rulesNumbers = List(46000), //fibonaccisUntil(50000),
       pointsNumbers = List(30000),
       Uniform.genRule,
       Uniform.genPoint
     ),
-//    ScriptConfig(
-//      name = "uniformLimited",
-//      dimensions = List(2, 4, 8, 16, 24, 32),
-//      rulesNumbers = fibonaccisUntil(50000),
-//      pointsNumbers = List(30000),
-//      UniformLimited.genRule,
-//      Uniform.genPoint
-//    ),
-//    ScriptConfig(
-//      name = "uniformDiscrete",
-//      dimensions = List(2, 4, 8, 16, 24, 32),
-//      rulesNumbers = fibonaccisUntil(50000),
-//      pointsNumbers = List(30000),
-//      UniformDiscrete.genRule,
-//      Uniform.genPoint
-//    )
+    ScriptConfig(
+      name = "uniformLimited",
+      dimensions = List(2, 4, 8, 16, 24, 32),
+      rulesNumbers = fibonaccisUntil(50000),
+      pointsNumbers = List(30000),
+      UniformLimited.genRule,
+      Uniform.genPoint
+    ),
+    ScriptConfig(
+      name = "uniformDiscrete",
+      dimensions = List(2, 4, 8, 16, 24, 32),
+      rulesNumbers = fibonaccisUntil(50000),
+      pointsNumbers = List(30000),
+      UniformDiscrete.genRule,
+      Uniform.genPoint
+    )
   )
 
   val treeConfig: Int => XTreeConfig =
-    dimensions => XTreeConfig(165, 250, dimensions, 0.5)
+    dimensions => XTreeConfig(40, 100, dimensions, 0.5)
 
   def singleRun(rootDir: Path, scriptConfig: ScriptConfig): ZIO[zio.ZEnv, Throwable, Unit] =
     for {
@@ -53,27 +53,22 @@ object FullScript extends zio.App {
       _ <- putStrLn("Quadratic")
       quadraticResults <- QuadraticScript.runScript(scriptConfig.copy(pointsNumbers = List(1000)))
       _ <- effectBlocking(Files.write(singleRunDir.resolve("quadratic.tsv"), quadraticResults.toTsv.getBytes))
-      _ <- effectBlocking(System.gc())
 
       _ <- putStrLn("BulkRTreeRule")
       bulkRTreeRuleResults <- BulkRTreeRuleIndexScript.runScript(scriptConfig, treeConfig)
       _ <- effectBlocking(Files.write(singleRunDir.resolve("bRTreeRule.tsv"), bulkRTreeRuleResults.toTsv.getBytes))
-      _ <- effectBlocking(System.gc())
 
       _ <- putStrLn("BulkRTreePoint")
       bulkRTreePointResults <- BulkRTreePointIndexScript.runScript(scriptConfig, treeConfig, 10000)
       _ <- effectBlocking(Files.write(singleRunDir.resolve("bRTreePoint.tsv"), bulkRTreePointResults.toTsv.getBytes))
-      _ <- effectBlocking(System.gc())
 
       _ <- putStrLn("XTreeRule")
       xTreeRuleResults <- XTreeRuleIndexScript.runScript(scriptConfig, treeConfig)
       _ <- effectBlocking(Files.write(singleRunDir.resolve("xTreeRule.tsv"), xTreeRuleResults.toTsv.getBytes))
-      _ <- effectBlocking(System.gc())
 
       _ <- putStrLn("XTreePoint")
       xTreePointResults <- XTreePointIndexScript.runScript(scriptConfig, treeConfig, 10000)
       _ <- effectBlocking(Files.write(singleRunDir.resolve("xTreePoint.tsv"), xTreePointResults.toTsv.getBytes))
-      _ <- effectBlocking(System.gc())
     } yield ()
 
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =

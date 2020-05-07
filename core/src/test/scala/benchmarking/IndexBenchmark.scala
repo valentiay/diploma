@@ -16,7 +16,7 @@ import fs2.Stream
 class IndexBenchmark(
                       name: String,
                       mkIndex: (Int, List[(Rule, UUID)]) => Index,
-                      dimensionsNumber: List[Int],
+                      dimensionsNumbers: List[Int],
                       rulesNumbers: List[Int],
                       pointsNumbers: List[Int],
                       genRule: Int => Task[Rule],
@@ -45,13 +45,13 @@ class IndexBenchmark(
 
 
   def results: ZIO[zio.ZEnv, Throwable, BenchmarkResults] =
-    putStrLn("<" + "-" * (dimensionsNumber.size * rulesNumbers.size * pointsNumbers.size - 2) + ">") *>
+    putStrLn("<" + "-" * (dimensionsNumbers.size * rulesNumbers.size * pointsNumbers.size - 2) + ">") *>
       (for {
-        dimensions <- dimensionsNumber
+        dimensions <- dimensionsNumbers
         rulesNumber <- rulesNumbers
         pointsNumber <- pointsNumbers
       } yield singleResult(dimensions, rulesNumber, pointsNumber)).sequence.map { lines =>
-        BenchmarkResults(name, Map(), lines)
+        BenchmarkResults(name, lines)
       } <*
       putStrLn("")
 }

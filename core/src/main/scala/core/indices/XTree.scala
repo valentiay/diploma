@@ -2,6 +2,7 @@ package core.indices
 
 import java.util.UUID
 
+import cats.data.Chain
 import core.domain.{Point, Rule}
 import core.indices.XTreeBuilder.XTreeConfig
 
@@ -17,7 +18,7 @@ class XTreeBuilder(config: XTreeConfig) {
     root match {
       case Some(value) =>
         value.insert(mbr).foreach { case (a, b, dimension) =>
-          root = Some(new XTreeNode(ArrayBuffer(a, b), config, 1, a.mbr.plusMBR(b.mbr), BitSet(dimension)))
+          root = Some(new XTreeNode(ArrayBuffer(a, b), config, 1, a.vertexMBR.plusMBR(b.vertexMBR), BitSet(dimension)))
         }
       case None =>
         root = Some(XTreeLeaf.fromMBR(mbr, config))
@@ -26,11 +27,11 @@ class XTreeBuilder(config: XTreeConfig) {
   def insertPoint(point: Point): Unit =
     insertMBR((MBR.single(point), uuidStub))
 
-  def findRule(rule: Rule): List[(MBR, UUID)] =
-    root.map(_.find(MBR.fromRule(rule)).toList).getOrElse(Nil)
+  def findMBR(mbr: MBR): Chain[(MBR, UUID)] =
+    root.map(_.find(mbr)).getOrElse(Chain.empty)
 
-  def findPoint(point: Point): List[(MBR, UUID)] =
-    root.map(_.findPoint(point).toList).getOrElse(Nil)
+  def findPoint(point: Point): Chain[(MBR, UUID)] =
+    root.map(_.findPoint(point)).getOrElse(Chain.empty)
 
   def printMe(): Unit = root.foreach(_.printMe())
 }
@@ -38,7 +39,7 @@ class XTreeBuilder(config: XTreeConfig) {
 sealed trait XTreeVertex {
   def config: XTreeConfig
 
-  def mbr: MBR
+  def vertexMBR: MBR
 
   def insert(point: (MBR, UUID)): Option[(XTreeVertex, XTreeVertex, Int)]
 
@@ -46,9 +47,9 @@ sealed trait XTreeVertex {
 
   var isLeft: Option[Boolean] = None
 
-  def find(rule: MBR): ArrayBuffer[(MBR, UUID)]
+  def find(mbr: MBR): Chain[(MBR, UUID)]
 
-  def findPoint(point: Point): ArrayBuffer[(MBR, UUID)]
+  def findPoint(point: Point): Chain[(MBR, UUID)]
 
   def history: BitSet
 }
@@ -106,7 +107,7 @@ object XTreeVertex {
     splitByAxis(config, elements, toMbr)(chooseDimension(config, elements, toMbr))
 }
 
-class XTreeLeaf(val elements: ArrayBuffer[(MBR, UUID)], val config: XTreeConfig, var blocks: Int, var mbr: MBR, val history: BitSet) extends XTreeVertex {
+class XTreeLeaf(val elements: ArrayBuffer[(MBR, UUID)], val config: XTreeConfig, var blocks: Int, var vertexMBR: MBR, val history: BitSet) extends XTreeVertex {
 
   def split(): Option[(XTreeVertex, XTreeVertex, Int)] = {
     XTreeVertex.topologicalSplit[(MBR, UUID)](config, elements, _._1) match {
@@ -127,7 +128,7 @@ class XTreeLeaf(val elements: ArrayBuffer[(MBR, UUID)], val config: XTreeConfig,
 
   def insert(point: (MBR, UUID)): Option[(XTreeVertex, XTreeVertex, Int)] = {
     elements.addOne(point) // Вставить и выполнить корректировку
-    mbr = mbr.plusMBR(point._1)
+    vertexMBR = vertexMBR.plusMBR(point._1)
     if (elements.size > config.maxChildren * blocks) {
       split()
     } else {
@@ -136,16 +137,16 @@ class XTreeLeaf(val elements: ArrayBuffer[(MBR, UUID)], val config: XTreeConfig,
   }
 
   def printMe(offset: Int = 0): Unit = {
-    if (MBR.fromMBRsUnsafe(elements.map(_._1)).volume != mbr.volume) println(s"NE: ${MBR.fromMBRsUnsafe(elements.map(_._1)).volume}, ${mbr.volume}")
-    println(" " * offset + s"Leaf: ${elements.size} elements, $blocks blocks, $mbr")
+    if (MBR.fromMBRsUnsafe(elements.map(_._1)).volume != vertexMBR.volume) println(s"NE: ${MBR.fromMBRsUnsafe(elements.map(_._1)).volume}, ${vertexMBR.volume}")
+    println(" " * offset + s"Leaf: ${elements.size} elements, $blocks blocks, $vertexMBR")
   }
 
-  def find(rule: MBR): ArrayBuffer[(MBR, UUID)] = {
-    elements.filter(_._1.isContainedByMBR(rule))
+  def find(mbr: MBR): Chain[(MBR, UUID)] = {
+    Chain.fromSeq(elements.view.filter(_._1.isContainedByMBR(mbr)).toSeq)
   }
 
-  def findPoint(point: Point): ArrayBuffer[(MBR, UUID)] = {
-    elements.filter(_._1.containsPoint(point))
+  def findPoint(point: Point): Chain[(MBR, UUID)] = {
+    Chain.fromSeq(elements.view.filter(_._1.containsPoint(point)).toSeq)
   }
 }
 
@@ -153,23 +154,23 @@ object XTreeLeaf {
   def fromMBR(point: (MBR, UUID), config: XTreeConfig) = new XTreeLeaf(ArrayBuffer(point), config, 1, point._1, BitSet.empty)
 }
 
-class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig, var blocks: Int, var mbr: MBR, val history: BitSet) extends XTreeVertex {
+class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig, var blocks: Int, var vertexMBR: MBR, val history: BitSet) extends XTreeVertex {
 
   def minOverlapSplit: Option[(ArrayBuffer[XTreeVertex], ArrayBuffer[XTreeVertex], Int)] = {
     val possibleAxes = children.map(_.history).reduce(_ intersect _)
     possibleAxes.foldLeft[Option[(ArrayBuffer[XTreeVertex], ArrayBuffer[XTreeVertex], Int)]](None) {
-      case (None, dimension) => XTreeVertex.splitByAxis[XTreeVertex](config, children, _.mbr)(dimension)
+      case (None, dimension) => XTreeVertex.splitByAxis[XTreeVertex](config, children, _.vertexMBR)(dimension)
       case (res, _) => res
     }
   }
 
   def split(): Option[(XTreeVertex, XTreeVertex, Int)] = {
-    XTreeVertex.topologicalSplit[XTreeVertex](config, children, _.mbr).orElse(minOverlapSplit) match {
+    XTreeVertex.topologicalSplit[XTreeVertex](config, children, _.vertexMBR).orElse(minOverlapSplit) match {
       case Some((left, right, dimension)) =>
         Some(
           (
-            new XTreeNode(left, config, left.size / config.maxChildren + 1, MBR.fromMBRs(left.map(_.mbr)).get, history + dimension),
-            new XTreeNode(right, config, right.size / config.maxChildren + 1, MBR.fromMBRs(right.map(_.mbr)).get, history + dimension),
+            new XTreeNode(left, config, left.size / config.maxChildren + 1, MBR.fromMBRs(left.map(_.vertexMBR)).get, history + dimension),
+            new XTreeNode(right, config, right.size / config.maxChildren + 1, MBR.fromMBRs(right.map(_.vertexMBR)).get, history + dimension),
             dimension
           )
         )
@@ -180,16 +181,16 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
   }
 
   def insert(point: (MBR, UUID)): Option[(XTreeVertex, XTreeVertex, Int)] = {
-    var minEnlargment = children(0).mbr.plusMBR(point._1).volume - children(0).mbr.volume
+    var minEnlargment = children(0).vertexMBR.plusMBR(point._1).volume - children(0).vertexMBR.volume
     var mini = 0
     for (i <- children.indices.tail) {
-      val newEnlargment = children(i).mbr.plusMBR(point._1).volume - children(i).mbr.volume
+      val newEnlargment = children(i).vertexMBR.plusMBR(point._1).volume - children(i).vertexMBR.volume
       if (newEnlargment < minEnlargment) {
         minEnlargment = newEnlargment
         mini = i
       }
     }
-    mbr = mbr.plusMBR(point._1)
+    vertexMBR = vertexMBR.plusMBR(point._1)
     children(mini).insert(point).foreach {
       case (a, b, _) =>
         if (children.size == 2) {
@@ -211,26 +212,26 @@ class XTreeNode(val children: ArrayBuffer[XTreeVertex], val config: XTreeConfig,
   }
 
   def printMe(offset: Int = 0): Unit = {
-    println(" " * offset + s"Node: ${children.size} children, $blocks blocks, $mbr")
-    children.sortBy(_.mbr.starts.head).foreach(_.printMe(offset + 4))
+    println(" " * offset + s"Node: ${children.size} children, $blocks blocks, $vertexMBR")
+    children.sortBy(_.vertexMBR.starts.head).foreach(_.printMe(offset + 4))
   }
 
-  def find(rule: MBR): ArrayBuffer[(MBR, UUID)] = {
-    children.flatMap(vertex =>
-      if (vertex.mbr.intersect(rule).nonEmpty) {
-        vertex.find(rule)
+  def find(mbr: MBR): Chain[(MBR, UUID)] = {
+    children.foldLeft(Chain.empty[(MBR, UUID)])((acc, vertex) =>
+      if (vertex.vertexMBR.intersect(mbr).nonEmpty) {
+        acc.concat(vertex.find(mbr))
       } else {
-        ArrayBuffer.empty
+        acc
       }
     )
   }
 
-  def findPoint(point: Point): ArrayBuffer[(MBR, UUID)] = {
-    children.flatMap(vertex =>
-      if (vertex.mbr.containsPoint(point)) {
-        vertex.findPoint(point)
+  def findPoint(point: Point): Chain[(MBR, UUID)] = {
+    children.foldLeft(Chain.empty[(MBR, UUID)])((acc, vertex) =>
+      if (vertex.vertexMBR.containsPoint(point)) {
+        acc.concat(vertex.findPoint(point))
       } else {
-        ArrayBuffer.empty
+        acc
       }
     )
   }

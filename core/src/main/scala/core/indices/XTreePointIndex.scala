@@ -12,7 +12,14 @@ class XTreePointIndex(rules: List[(Rule, UUID)], chunkSize: Int, config: XTreeCo
     points.chunkN(chunkSize).flatMap { chunk =>
       val xTreeBuilder = XTreeBuilder.fromChunk(config, chunk)
       Stream.fromIterator[ERIO](
-        rules.flatMap(rule => xTreeBuilder.findRule(rule._1).map(res => Match(res._1.toPoint, res._2))).iterator
+        rules
+          .iterator
+          .flatMap(rule =>
+            xTreeBuilder
+              .findMBR(MBR.fromRule(rule._1))
+              .iterator
+              .map(res => Match(res._1.toPoint, res._2))
+          )
       )
     }
 }

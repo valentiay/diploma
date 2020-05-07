@@ -7,22 +7,24 @@ final case class BenchmarkResult(
                                   timeMs: Long,
                                   timeNormUs: Long,
                                   matchesPercent: Double
-                                )
+                                ) {
+  def toTsvLine: String =
+    s"${dimensions.formatted("%9d")}\t${rules.formatted("%9d")}\t${points.formatted("%9d")}\t${timeMs.formatted("%9d")}\t${timeNormUs.formatted("%9d")}\t${matchesPercent.formatted("%2.2f")}"
+}
 
 final case class BenchmarkResults(
                                    name: String,
-                                   extras: Map[String, String],
                                    lines: List[BenchmarkResult],
                                  ) {
   def toTsv: String = {
-    val linesStrings =
-      lines.map { line =>
-        import line._
-        s"${dimensions.formatted("%9d")}\t${rules.formatted("%9d")}\t${points.formatted("%9d")}\t${timeMs.formatted("%9d")}\t${timeNormUs.formatted("%9d")}\t${matchesPercent.formatted("%2.2f")}"
-      }
     s"""
-       |dimensions\trules\tpoints\ttimeMs\ttimeNormUs\tmatchesPercent
-       |${linesStrings.mkString("\n")}
+       |${BenchmarkResults.tsvHeader}
+       |${lines.map(_.toTsvLine).mkString("\n")}
     """.stripMargin
   }
+}
+
+object BenchmarkResults {
+  val tsvHeader =
+    "dimensions\trules\tpoints\ttimeMs\ttimeNormUs\tmatchesPercent"
 }
