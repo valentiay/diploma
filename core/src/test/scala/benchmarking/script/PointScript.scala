@@ -11,13 +11,13 @@ import zio.clock.currentDateTime
 import zio.console._
 
 object PointScript extends zio.App{
-  val rulesNumbers = fibonaccisUntil(50000)
+  val rulesNumbers = fibonacchis.dropWhile(_ < 100).takeWhile(_ < 100000).toList
 
-  val chunkSizes = fibonaccisUntil(50000)
+  val chunkSizes = fibonaccisUntil(100000)
 
-  val dimensionSizes = List(8)
+  val dimensionSizes = List(16)
 
-  val pointsNumber = List(50000)
+  val pointsNumber = List(200000)
 
   val treeConfig: Int => XTreeConfig =
     dimensions => XTreeConfig(40, 100, dimensions, 0.5)
