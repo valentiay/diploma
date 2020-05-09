@@ -17,6 +17,12 @@ import zio.console._
 import zio.interop.catz._
 import java.io.StringWriter
 
+import org.apache.curator.framework.recipes.nodes.PersistentNode
+import org.apache.curator.utils.ZKPaths
+import org.apache.zookeeper.CreateMode
+import org.apache.curator.framework.CuratorFrameworkFactory
+import org.apache.curator.retry.ExponentialBackoffRetry
+
 object Main extends zio.App with Endpoint.Module[Task] {
 
   implicit def runtime: zio.Runtime[zio.ZEnv] = Main
@@ -64,6 +70,11 @@ object Main extends zio.App with Endpoint.Module[Task] {
     (for {
       _ <- Task(DefaultExports.initialize())
       config <- ClassifierConfig.read
+      retryPolicy = new ExponentialBackoffRetry(1000, 3)
+      curatorDriver = CuratorFrameworkFactory.newClient(config.zookeeperConnect, retryPolicy)
+      _ = curatorDriver.start()
+      rulesRangeStream <- Kek.rulesRangeStream(curatorDriver)
+      _ <- rulesRangeStream.evalTap(config => putStrLn(config.toString())).compile.drain
       driver = AsyncDriver()
       rulesStorage <- MongoRulesStorage.make(driver, config.mongo)
       _ <- runProcess(config, rulesStorage).forkDaemon

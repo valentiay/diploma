@@ -22,6 +22,7 @@ final case class ClassifierConfig(
                                    consumerSettings: ConsumerSettings[ERIO, UUID, Point],
                                    producerSettings: ProducerSettings[ERIO, UUID, Match],
                                    mongo: MongoConfig,
+                                   zookeeperConnect: String
                                  )
 
 object ClassifierConfig {
@@ -76,6 +77,10 @@ object ClassifierConfig {
           case Some(host) => List(host)
         }
 
+      zookeeperConnect <- env("ZOOKEEPER_CONNECT")
+        .collect(new IllegalArgumentException("ZOOKEEPER_CONNECT must be set")){
+          case Some(value) => value
+        }
     } yield ClassifierConfig(
       rulesTtl = 5.minutes,
       dimensions = dimensions,
@@ -84,6 +89,7 @@ object ClassifierConfig {
       outputTopic = outputTopic,
       consumerSettings = consumerSettings,
       producerSettings = producerSettings,
-      mongo = MongoConfig(mongoHosts, "diploma", "password")
+      mongo = MongoConfig(mongoHosts, "diploma", "password"),
+      zookeeperConnect = zookeeperConnect
     )
 }
