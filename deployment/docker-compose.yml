@@ -46,6 +46,26 @@ services:
         constraints:
           - node.role == manager
 
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    depends_on:
+      - prometheus
+
   generator:
     image: valentiay/generator
     ports:
@@ -53,11 +73,13 @@ services:
     environment:
       DIMENSIONS: 8
       NUM_RULES: 50000
-      GEN_RULE: uniformLimited
+      GEN_RULE: uniform
       GEN_POINT: uniform
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       OUTPUT_TOPIC: points
       MONGO_HOSTS: mongo
+    deploy:
+      replicas: 2
     depends_on:
       - mongo
       - kafka
@@ -94,6 +116,3 @@ services:
     depends_on:
       - mongo
       - kafka
-
-volumes:
-  swarm-endpoints:

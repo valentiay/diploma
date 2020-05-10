@@ -99,7 +99,7 @@ class ZookeeperConfigService private(client: CuratorFramework, config: Classifie
 
 object ZookeeperConfigService {
 
-  final case class ClusterConfig(index: Int, groupNumber: Int)
+  final case class ClusterConfig(group: Int, groupNumber: Int)
 
   def rulesRangeStream(config: ClassifierConfig): ERIO[Stream[ERIO, ClusterConfig]] =
     ZIO.apply {

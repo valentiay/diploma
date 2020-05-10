@@ -27,13 +27,19 @@ object Main extends zio.App with Endpoint.Module[Task] {
   implicit def runtime: zio.Runtime[zio.ZEnv] = Main
 
   private val pointsTotal =
-    Counter.build("classifier_points_processed_total", "Number of points processed").register()
+    Counter
+      .build("classifier_points_processed_total", "Number of points processed")
+      .labelNames("group")
+      .register()
 
   private val matchesTotal =
-    Counter.build("classifier_matches_found_total", "Number of matches found").register()
+    Counter
+      .build("classifier_matches_found_total", "Number of matches found")
+      .labelNames("group")
+      .register()
 
-  private val groupIndex =
-    Gauge.build("classifier_group_index", "Current group index").register()
+  private val group =
+    Gauge.build("classifier_group", "Current group").register()
 
   private val rulesNumber =
     Gauge.build("classifier_rules_total", "Number of rules in index").register()
@@ -46,14 +52,14 @@ object Main extends zio.App with Endpoint.Module[Task] {
     }
   }
 
-  def startPipeline(config: ClassifierConfig, index: Index): ERIO[Unit] =
+  def startPipeline(config: ClassifierConfig, clusterConfig: ClusterConfig, index: Index): ERIO[Unit] =
     consumerStream[ERIO, UUID, Point](config.consumerSettings.withGroupId(s"classifier-$index"))
       .evalTap(_.subscribeTo(config.inputTopic))
       .flatMap(_.stream)
       .map(_.record.value)
-      .evalTap(_ => Task(pointsTotal.inc()))
+      .evalTap(_ => Task(pointsTotal.labels(clusterConfig.group.toString).inc()))
       .through(index.findRules)
-      .evalTap(_ => Task(matchesTotal.inc()))
+      .evalTap(_ => Task(matchesTotal.labels(clusterConfig.group.toString).inc()))
       .map { mat =>
         val record = ProducerRecord(config.outputTopic, UUID.randomUUID(), mat)
         ProducerRecords.one(record)
@@ -63,16 +69,16 @@ object Main extends zio.App with Endpoint.Module[Task] {
       .drain
       .onInterrupt(putStrLn("Interrupting process"))
 
-  def startProcess(config: ClassifierConfig, rulesStorage: RulesStorage, clusterConfig: ClusterConfig): ERIO[Unit] =
+  def startProcess(config: ClassifierConfig, clusterConfig: ClusterConfig, rulesStorage: RulesStorage): ERIO[Unit] =
       rulesStorage
-        .getRulesBatch(clusterConfig.index, clusterConfig.groupNumber)
+        .getRulesBatch(clusterConfig.group, clusterConfig.groupNumber)
         .tap(rules => ZIO(rulesNumber.set(rules.size)))
         .tap(rules => sleep(1.minute).when(rules.isEmpty))
         .doUntil(_.nonEmpty)
         .tap(_ => putStrLn("Building Index"))
         .map(config.makeIndex)
         .tap(_ => putStrLn("Index built"))
-        .flatMap(index => startPipeline(config, index).timeout(config.rulesTtl))
+        .flatMap(index => startPipeline(config, clusterConfig, index).timeout(config.rulesTtl))
         .forever
 
   def loadConfig(
@@ -84,26 +90,26 @@ object Main extends zio.App with Endpoint.Module[Task] {
       mvar.isEmpty.flatMap(isEmpty =>
         if (isEmpty) {
           putStrLn("It is first configuration, starting process") *>
-            startProcess(config, rulesStorage, clusterConfig).fork.flatMap(fiber =>
+            startProcess(config, clusterConfig, rulesStorage).fork.flatMap(fiber =>
               mvar.put((clusterConfig, fiber))
             )
         } else {
           for {
-            (oldIndex, oldFiber) <- mvar.take
-            _ <- if (oldIndex == clusterConfig) {
+            (oldConfig, oldFiber) <- mvar.take
+            _ <- if (oldConfig == clusterConfig) {
               putStrLn("Old cluster config is equal to new one. Doing nothing") *>
                 mvar.put((clusterConfig, oldFiber))
             } else {
-              putStrLn(s"Old cluster config ($oldIndex) is not equal to new one. Replacing") *>
+              putStrLn(s"Old cluster config ($oldConfig) is not equal to new one. Replacing") *>
                 oldFiber.interrupt *>
-                startProcess(config, rulesStorage, clusterConfig).fork.flatMap(fiber =>
+                startProcess(config, clusterConfig, rulesStorage).fork.flatMap(fiber =>
                   mvar.put((clusterConfig, fiber))
                 )
             }
           } yield ()
         }
       ) *>
-      ZIO(groupIndex.set(clusterConfig.index))
+      ZIO(group.set(clusterConfig.group))
   }
 
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
