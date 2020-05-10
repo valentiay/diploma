@@ -22,7 +22,8 @@ final case class ClassifierConfig(
                                    consumerSettings: ConsumerSettings[ERIO, UUID, Point],
                                    producerSettings: ProducerSettings[ERIO, UUID, Match],
                                    mongo: MongoConfig,
-                                   zookeeperConnect: String
+                                   zookeeperConnect: String,
+                                   groupSize: Int
                                  )
 
 object ClassifierConfig {
@@ -65,7 +66,6 @@ object ClassifierConfig {
         valueDeserializer = serde.pointDeserializer[ERIO]
       ).withAutoOffsetReset(AutoOffsetReset.Latest)
         .withBootstrapServers(bootstrapServers)
-        .withGroupId("classifier")
 
       producerSettings = ProducerSettings(
         keySerializer = Serializer[ERIO, UUID],
@@ -78,7 +78,13 @@ object ClassifierConfig {
         }
 
       zookeeperConnect <- env("ZOOKEEPER_CONNECT")
-        .collect(new IllegalArgumentException("ZOOKEEPER_CONNECT must be set")){
+        .collect(new IllegalArgumentException("ZOOKEEPER_CONNECT must be set")) {
+          case Some(value) => value
+        }
+
+      groupSize <- env("GROUP_SIZE")
+        .map(_.flatMap(_.toIntOption))
+        .collect(new IllegalArgumentException("GROUP_SIZE must be set to an integer")) {
           case Some(value) => value
         }
     } yield ClassifierConfig(
@@ -90,6 +96,7 @@ object ClassifierConfig {
       consumerSettings = consumerSettings,
       producerSettings = producerSettings,
       mongo = MongoConfig(mongoHosts, "diploma", "password"),
-      zookeeperConnect = zookeeperConnect
+      zookeeperConnect = zookeeperConnect,
+      groupSize = groupSize
     )
 }

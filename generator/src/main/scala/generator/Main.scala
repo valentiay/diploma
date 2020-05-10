@@ -12,6 +12,7 @@ import fs2.kafka._
 import io.finch._
 import io.prometheus.client.{CollectorRegistry, Counter}
 import io.prometheus.client.exporter.common.TextFormat
+import io.prometheus.client.hotspot.DefaultExports
 import reactivemongo.api.AsyncDriver
 import zio.console._
 import zio.interop.catz._
@@ -33,6 +34,7 @@ object Main extends zio.App with Endpoint.Module[Task] {
 
   def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
     (for {
+      _ <- Task(DefaultExports.initialize())
       config <- GeneratorConfig.read
       driver = AsyncDriver()
       rulesStorage <- MongoRulesStorage.make(driver, config.mongo)
@@ -42,7 +44,6 @@ object Main extends zio.App with Endpoint.Module[Task] {
       _ <- ZIO.foreach(rules.grouped(10000).toList)(group => rulesStorage.putRules(group) *> putStrLn("Rules group put"))
 
       _ <- Stream.repeatEval[ERIO, Point](config.genPoint)
-        .evalTap(i => putStrLn(i.toString))
         .map { point =>
           val record = ProducerRecord(config.outputTopic, UUID.randomUUID, point)
           ProducerRecords.one(record)

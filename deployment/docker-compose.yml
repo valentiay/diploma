@@ -2,7 +2,6 @@ version: '3'
 services:
   zookeeper:
     image: zookeeper
-    restart: always
     hostname: zookeeper
     ports:
       - 2181:2181
@@ -17,9 +16,9 @@ services:
       KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_ADVERTISED_PORT: 9092
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_RETENTION_MS: 60000
+      KAFKA_RETENTION_MS: 1000
       KAFKA_CLEANUP_POLICY: delete
-      KAFKA_NUM_PARTITIONS: 4
+      KAFKA_NUM_PARTITIONS: 2
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
@@ -75,6 +74,7 @@ services:
       OUTPUT_TOPIC: matches
       MONGO_HOSTS: mongo
       ZOOKEEPER_CONNECT: zookeeper:2181
+      GROUP_SIZE: 2
     deploy:
       replicas: 4
     depends_on:

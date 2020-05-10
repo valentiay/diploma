@@ -14,7 +14,7 @@ import reactivemongo.api.MongoConnectionOptions.Credential
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.bson.exceptions.ValueDoesNotMatchException
 import reactivemongo.api.bson.{BSONArray, BSONDocument, BSONDocumentHandler, BSONDouble, BSONHandler, BSONString, BSONValue, Macros, document}
-import reactivemongo.api.{AsyncDriver, FailoverStrategy, MongoConnectionOptions}
+import reactivemongo.api.{AsyncDriver, Cursor, FailoverStrategy, MongoConnectionOptions, ReadConcern}
 import reactivemongo.core.nodeset.Authenticate
 import zio.{Schedule, ZIO}
 import zio.console._
@@ -26,6 +26,8 @@ trait RulesStorage {
   def getRule(id: UUID): ERIO[Rule]
 
   def getRules: ERIO[List[(Rule, UUID)]]
+
+  def getRulesBatch(index: Int, batchesNumber: Int): ERIO[List[(Rule, UUID)]]
 
   def putRule(rule: Rule): ERIO[UUID]
 
@@ -43,22 +45,44 @@ class MongoRulesStorage private(collection: BSONCollection) extends RulesStorage
     ZIO.fromFuture(implicit ec => collection.find(selector, None).cursor[MongoRule]().head).map(_.rule)
   }
 
-  def getRules: ERIO[List[(Rule, UUID)]] = {
-    val selector = document("_id" ->
-      document(
-        "$gt" -> "00000000-0000-0000-0000-000000000000",
-        "$lt" -> "ffffffff-ffff-ffff-ffff-ffffffffffff"
-      )
+  private val totalSelector = document("_id" ->
+    document(
+      "$gt" -> "00000000-0000-0000-0000-000000000000",
+      "$lt" -> "ffffffff-ffff-ffff-ffff-ffffffffffff"
     )
+  )
 
+  def getRules: ERIO[List[(Rule, UUID)]] = {
     import reactivemongo.api.bson.BSONDocumentIdentity
 
     ZIO.fromFuture(implicit ec =>
       collection
-        .find(selector, None)
+        .find(totalSelector, None)
         .cursor[MongoRule]()
-        .fold(List.empty[(Rule, UUID)])((res, mongoRule) => ((mongoRule.rule, UUID.fromString(mongoRule._id))) :: res)
+        .fold(List.empty[(Rule, UUID)])((acc, mongoRule) =>
+          ((mongoRule.rule, UUID.fromString(mongoRule._id))) :: acc
+        )
     )
+  }
+
+  def getRulesBatch(index: Int, batchesNumber: Int): ERIO[List[(Rule, UUID)]] = {
+    import reactivemongo.api.bson.BSONDocumentIdentity
+
+    for {
+      size <- ZIO.fromFuture(implicit ec =>
+        collection.count(None, None, 0, None, ReadConcern.Available)
+      )
+      batchSize = size.toInt / batchesNumber + 1
+      res <- ZIO.fromFuture(implicit ec =>
+        collection
+          .find(totalSelector, None)
+          .skip(index * batchSize)
+          .cursor[MongoRule]()
+          .fold(List.empty[(Rule, UUID)], batchSize)((acc, mongoRule) =>
+            ((mongoRule.rule, UUID.fromString(mongoRule._id))) :: acc
+          )
+      )
+    } yield res
   }
 
   def putRule(rule: Rule): ERIO[UUID] = {
@@ -81,7 +105,7 @@ class MongoRulesStorage private(collection: BSONCollection) extends RulesStorage
 
     import reactivemongo.api.bson.BSONDocumentIdentity
 
-    ZIO.fromFuture{ implicit ec =>
+    ZIO.fromFuture { implicit ec =>
       collection.delete().one(selector)
     }.unit
   }
@@ -169,6 +193,9 @@ object MongoRulesStorage {
       connection <- ZIO.fromFuture(implicit ec => driver.connect(config.hosts, connectionOptions))
       db <- ZIO.fromFuture(implicit ec => connection.database("diploma"))
       collection = db.collection[BSONCollection]("rules")
-    } yield new MongoRulesStorage(collection)).onError(_ => putStrLn("Connection failed, retrying...")).retry(Schedule.recurs(10))
+    } yield new MongoRulesStorage(collection))
+      .onError(_ => putStrLn("Connection failed, retrying..."))
+      .retry(Schedule.recurs(10)) <*
+      putStrLn("Connected to mongo")
   }
 }
