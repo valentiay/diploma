@@ -53,7 +53,7 @@ object Main extends zio.App with Endpoint.Module[Task] {
   }
 
   def startPipeline(config: ClassifierConfig, clusterConfig: ClusterConfig, index: Index): ERIO[Unit] =
-    consumerStream[ERIO, UUID, Point](config.consumerSettings.withGroupId(s"classifier-$index"))
+    consumerStream[ERIO, UUID, Point](config.consumerSettings.withGroupId(s"classifier-${clusterConfig.group}"))
       .evalTap(_.subscribeTo(config.inputTopic))
       .flatMap(_.stream)
       .map(_.record.value)

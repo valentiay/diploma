@@ -64,7 +64,7 @@
       ],
       "targets": [
         {
-          "expr": "classifier_group_index",
+          "expr": "classifier_group",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -93,7 +93,7 @@
         "colorMode": "value",
         "fieldOptions": {
           "calcs": [
-            "mean"
+            "last"
           ],
           "defaults": {
             "mappings": [

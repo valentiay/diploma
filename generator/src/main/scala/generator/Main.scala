@@ -39,7 +39,6 @@ object Main extends zio.App with Endpoint.Module[Task] {
       driver = AsyncDriver()
       rulesStorage <- MongoRulesStorage.make(driver, config.mongo)
 
-      _ <- rulesStorage.clear
       rules <- ZIO.collectAll(ZIO.replicate(config.numRules)(config.genRule))
       _ <- ZIO.foreach(rules.grouped(10000).toList)(group => rulesStorage.putRules(group) *> putStrLn("Rules group put"))
 

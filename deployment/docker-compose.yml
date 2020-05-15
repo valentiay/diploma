@@ -79,7 +79,7 @@ services:
       OUTPUT_TOPIC: points
       MONGO_HOSTS: mongo
     deploy:
-      replicas: 2
+      replicas: 1
     depends_on:
       - mongo
       - kafka
