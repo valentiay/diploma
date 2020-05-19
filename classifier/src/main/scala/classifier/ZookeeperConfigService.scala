@@ -8,7 +8,7 @@ import fs2.concurrent.Queue
 import fs2.Stream
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.framework.recipes.nodes.PersistentNode
-import org.apache.curator.framework.recipes.cache.{ChildData, NodeCache, PathChildrenCache, PathChildrenCacheEvent, PathChildrenCacheListener}
+import org.apache.curator.framework.recipes.cache.{PathChildrenCache, PathChildrenCacheEvent}
 import org.apache.curator.retry.ExponentialBackoffRetry
 import org.apache.zookeeper.CreateMode
 import org.apache.curator.utils.CloseableUtils
