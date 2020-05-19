@@ -90,7 +90,7 @@ services:
       - "8081:8081"
     environment:
       DIMENSIONS: 8
-      INDEX_TYPE: bulkRTreePoint
+      INDEX_TYPE: bulkRTreeRule
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INPUT_TOPIC: points
       OUTPUT_TOPIC: matches
