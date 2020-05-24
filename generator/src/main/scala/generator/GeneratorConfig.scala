@@ -4,7 +4,7 @@ import java.util.UUID
 
 import core.indices.ERIO
 import core.database.MongoRulesStorage.MongoConfig
-import core.generation.{Uniform, UniformDiscrete, UniformLimited}
+import core.generation.{Gaussian, Uniform, UniformDiscrete, UniformLimited}
 import core.domain.{Point, Rule, serde}
 import fs2.kafka.{ProducerSettings, Serializer}
 import zio.{RIO, UIO}
@@ -37,16 +37,18 @@ object GeneratorConfig {
         }
 
       genRule <- env("GEN_RULE")
-        .collect(new IllegalArgumentException("GEN_RULE must be set to one of [uniform, uniformLimited, uniformDiscrete]")) {
+        .collect(new IllegalArgumentException("GEN_RULE must be set to one of [uniform, uniformLimited, uniformDiscrete, gaussian]")) {
           case Some("uniform") => Uniform.genRule(dimensions)
           case Some("uniformLimited") => UniformLimited.genRule(dimensions)
           case Some("uniformDiscrete") => UniformDiscrete.genRule(dimensions)
+          case Some("gaussian") => Gaussian.genRule(dimensions)
         }
 
       genPoint <- env("GEN_POINT")
         .map(_.fold("uniform")(_.toLowerCase))
-        .collect(new IllegalArgumentException("GEN_POINT must be one of [uniform]")) {
+        .collect(new IllegalArgumentException("GEN_POINT must be one of [uniform, gaussian]")) {
           case "uniform" => Uniform.genPoint(dimensions)
+          case "gaussian" => Gaussian.genPoint(dimensions)
         }
 
       bootstrapServers <- env("KAFKA_BOOTSTRAP_SERVERS")

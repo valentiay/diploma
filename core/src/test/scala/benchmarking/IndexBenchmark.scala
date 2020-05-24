@@ -27,7 +27,7 @@ class IndexBenchmark(
       rules <- List.fill(rulesNumber)(genRule(dimensions).map(rule => (rule, UUID.randomUUID()))).sequence
       points = Stream.repeatEval(genPoint(dimensions)).take(pointsNumber)
       start <- nanoTime
-      _ <- mkIndex(dimensions, rules).findRules(points).compile.drain
+      matchesNumber <- mkIndex(dimensions, rules).findRules(points).compile.foldChunks(0)((count, chunk) => count + chunk.size)
       end <- nanoTime
       timeNs = end - start
       _ <- putStr("|")
@@ -39,7 +39,7 @@ class IndexBenchmark(
         pointsNumber,
         timeNs / 1000000,
         timeNs / pointsNumber / 1000,
-        0
+        matchesNumber * 100.0 / pointsNumber
       )
   }
 

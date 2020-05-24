@@ -9,10 +9,8 @@ object UniformLimited {
   def genRuleUnsafe(dimensions: Int): Rule =
     Vector.fill(dimensions){
       val center = Random.nextDouble()
-      val delta = Random.nextDouble() / 20
-      val a = Interval(center - delta, center + delta)
-//      println(a)
-      a
+      val delta = Random.nextDouble() * dimensions / 32
+      Interval(center - delta, center + delta)
     }
 
   def genRule(dimensions: Int): UIO[Rule] =

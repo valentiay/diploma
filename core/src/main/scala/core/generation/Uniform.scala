@@ -8,19 +8,19 @@ import scala.util.Random
 object Uniform {
   def genRuleUnsafe(dimensions: Int): Rule =
     Vector.fill(dimensions) {
-      Random.nextInt(5) match {
+      Random.nextInt(10) match {
         case 0 =>
           Exact(Random.nextDouble())
         case 1 =>
+          Less(Random.nextDouble())
+        case 2 =>
+          Greater(Random.nextDouble())
+        case 3 =>
+          Every
+        case _ =>
           val center = Random.nextDouble()
           val delta = Random.nextDouble()
           Interval(center - delta, center + delta)
-        case 2 =>
-          Less(Random.nextDouble())
-        case 3 =>
-          Greater(Random.nextDouble())
-        case 4 =>
-          Every
       }
     }
 

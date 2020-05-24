@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import cats.instances.list._
 import cats.syntax.traverse._
-import core.generation.{Uniform, UniformDiscrete, UniformLimited}
+import core.generation.{Gaussian, Uniform, UniformDiscrete, UniformLimited}
 import core.indices.XTreeBuilder.XTreeConfig
 import zio.ZIO
 import zio.blocking._
@@ -37,7 +37,15 @@ object FullScript extends zio.App {
       pointsNumbers = List(30000),
       UniformDiscrete.genRule,
       Uniform.genPoint
-    )
+    ),
+    ScriptConfig(
+      name = "gaussian",
+      dimensions = List(2, 4, 8, 16, 24, 32),
+      rulesNumbers = fibonaccisUntil(50000),
+      pointsNumbers = List(30000),
+      Gaussian.genRule,
+      Gaussian.genPoint
+    ),
   )
 
   val treeConfig: Int => XTreeConfig =
