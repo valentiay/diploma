@@ -39,7 +39,7 @@ class IndexBenchmark(
         pointsNumber,
         timeNs / 1000000,
         timeNs / pointsNumber / 1000,
-        matchesNumber * 100.0 / pointsNumber
+        matchesNumber * 100.0 / rulesNumber
       )
   }
 
