@@ -184,14 +184,14 @@ object MongoRulesStorage {
 
   def make(driver: AsyncDriver, config: MongoConfig): ERIO[MongoRulesStorage] = {
     val connectionOptions = MongoConnectionOptions.default.copy(
-      credentials = Map("diploma" -> Credential(config.user, config.password.some)),
+      credentials = Map("thesis" -> Credential(config.user, config.password.some)),
       failoverStrategy = FailoverStrategy.remote
     )
 
     (for {
       _ <- putStrLn("Connecting to mongo")
       connection <- ZIO.fromFuture(implicit ec => driver.connect(config.hosts, connectionOptions))
-      db <- ZIO.fromFuture(implicit ec => connection.database("diploma"))
+      db <- ZIO.fromFuture(implicit ec => connection.database("thesis"))
       collection = db.collection[BSONCollection]("rules")
     } yield new MongoRulesStorage(collection))
       .onError(_ => putStrLn("Connection failed, retrying..."))

@@ -1,4 +1,4 @@
-name in ThisBuild := "diploma"
+name in ThisBuild := "thesis"
 
 version in ThisBuild := "0.1"
 

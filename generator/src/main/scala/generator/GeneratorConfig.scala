@@ -77,6 +77,6 @@ object GeneratorConfig {
       genPoint = genPoint,
       producerSettings = producerSettings,
       outputTopic = outputTopic,
-      mongo = MongoConfig(mongoHosts, "diploma", "password")
+      mongo = MongoConfig(mongoHosts, "thesis", "password")
     )
 }

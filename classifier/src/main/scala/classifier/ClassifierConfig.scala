@@ -95,7 +95,7 @@ object ClassifierConfig {
       outputTopic = outputTopic,
       consumerSettings = consumerSettings,
       producerSettings = producerSettings,
-      mongo = MongoConfig(mongoHosts, "diploma", "password"),
+      mongo = MongoConfig(mongoHosts, "thesis", "password"),
       zookeeperConnect = zookeeperConnect,
       groupSize = groupSize
     )

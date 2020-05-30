@@ -51,6 +51,6 @@ object ValidatorConfig {
       dimensions = dimensions,
       consumerSettings = consumerSettings,
       inputTopic = inputTopic,
-      mongo = MongoConfig(mongoHosts, "diploma", "password")
+      mongo = MongoConfig(mongoHosts, "thesis", "password")
     )
 }
