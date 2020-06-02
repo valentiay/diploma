@@ -88,7 +88,7 @@ object ClassifierConfig {
           case Some(value) => value
         }
     } yield ClassifierConfig(
-      rulesTtl = 5.minutes,
+      rulesTtl = 10.minutes,
       dimensions = dimensions,
       makeIndex = makeIndex,
       inputTopic = inputTopic,

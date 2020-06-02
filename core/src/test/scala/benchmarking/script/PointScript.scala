@@ -10,7 +10,7 @@ import zio.blocking.effectBlocking
 import zio.clock.currentDateTime
 import zio.console._
 
-object PointScript extends zio.App{
+object PointScript extends zio.App {
   val rulesNumbers = fibonacchis.dropWhile(_ < 100).takeWhile(_ < 100000).toList
 
   val chunkSizes = fibonacchis.dropWhile(_ < 75000).takeWhile(_ < 220000).toList
