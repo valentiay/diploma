@@ -14,30 +14,30 @@ import zio.interop.catz._
 
 object FullScript extends zio.App {
   val scriptConfigs = List(
-//    ScriptConfig(
-//      name = "uniform",
-//      dimensions = List(2, 4, 8, 16, 24, 32),
-//      rulesNumbers = fibonaccisUntil(50000),
-//      pointsNumbers = List(30000),
-//      Uniform.genRule,
-//      Uniform.genPoint
-//    ),
-//    ScriptConfig(
-//      name = "uniformLimited",
-//      dimensions = List(2, 4, 8, 16, 24, 32),
-//      rulesNumbers = fibonaccisUntil(50000),
-//      pointsNumbers = List(30000),
-//      UniformLimited.genRule,
-//      Uniform.genPoint
-//    ),
-//    ScriptConfig(
-//      name = "uniformDiscrete",
-//      dimensions = List(2, 4, 8, 16, 24, 32),
-//      rulesNumbers = fibonaccisUntil(50000),
-//      pointsNumbers = List(30000),
-//      UniformDiscrete.genRule,
-//      Uniform.genPoint
-//    ),
+    ScriptConfig(
+      name = "uniform",
+      dimensions = List(2, 4, 8, 16, 24, 32),
+      rulesNumbers = fibonaccisUntil(50000),
+      pointsNumbers = List(30000),
+      Uniform.genRule,
+      Uniform.genPoint
+    ),
+    ScriptConfig(
+      name = "uniformLimited",
+      dimensions = List(2, 4, 8, 16, 24, 32),
+      rulesNumbers = fibonaccisUntil(50000),
+      pointsNumbers = List(30000),
+      UniformLimited.genRule,
+      Uniform.genPoint
+    ),
+    ScriptConfig(
+      name = "uniformDiscrete",
+      dimensions = List(2, 4, 8, 16, 24, 32),
+      rulesNumbers = fibonaccisUntil(50000),
+      pointsNumbers = List(30000),
+      UniformDiscrete.genRule,
+      Uniform.genPoint
+    ),
     ScriptConfig(
       name = "gaussian",
       dimensions = List(2, 4, 8, 16, 24, 32),
