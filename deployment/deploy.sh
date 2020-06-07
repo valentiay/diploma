@@ -1,1 +1,1 @@
-docker stack deploy --compose-file docker-compose.yml thesis
+docker stack deploy --compose-file deployment/docker-compose.yml thesis

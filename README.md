@@ -1,6 +1,19 @@
-### References
-
-* http://www.swsys-web.ru/en/x-tree-superarns-algorithms.html
-* http://www.dbs.ifi.lmu.de/Publikationen/Papers/x-tree.ps
-* http://ceur-ws.org/Vol-74/files/FORUM_18.pdf
-* https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
+### Запуск тестов производительности
+Требования: установленный sbt.
+```shell script
+bash sbt "core/test:runMain benchmarking.script.FullScript"
+```
+### Публикация docker-образов
+Требования: установленный sbt.
+```shell script
+bash deployment/publish.sh
+```
+### Развертывание и обновление системы
+Требования: команда выполняется с узла-лидера docker swarm 
+```shell script
+bash deployment/deploy.sh
+```
+### Свертывание системы
+```shell script
+bash deployment/shutdown.sh
+```

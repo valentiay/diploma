@@ -41,18 +41,19 @@ object Main extends zio.App with Endpoint.Module[Task] {
         .flatMap(_.stream)
         .map(_.record.value)
         .evalTap(mat => putStrLn(mat.toString))
-        .evalTap{ mat =>
-          rulesMap.flatMap(_.get(mat.ruleId) match {
-            case Some(rule) =>
-              if (ruleSatisfied(mat.point, rule)) {
-                Task(matchesTotal.labels("valid").inc())
-              } else {
-                Task(matchesTotal.labels("invalid").inc())
-              }
-            case None =>
-              Task(matchesTotal.labels("missing").inc())
-          })
-        }
+        .evalTap(_ => Task(matchesTotal.labels("any")))
+//        .evalTap{ mat =>
+//          rulesMap.flatMap(_.get(mat.ruleId) match {
+//            case Some(rule) =>
+//              if (ruleSatisfied(mat.point, rule)) {
+//                Task(matchesTotal.labels("valid").inc())
+//              } else {
+//                Task(matchesTotal.labels("invalid").inc())
+//              }
+//            case None =>
+//              Task(matchesTotal.labels("missing").inc())
+//          })
+//        }
         .compile
         .drain
         .forkDaemon
